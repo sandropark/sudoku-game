@@ -3,16 +3,23 @@ package com.sandro.new_sudoku
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.testTag
 
 @Composable
 fun NumberPad(
@@ -20,29 +27,20 @@ fun NumberPad(
     onClearClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 숫자 버튼들 (1-9 가로로 일렬)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.testTag("number_pad_row")
-        ) {
-            for (number in 1..9) {
-                NumberButton(
-                    number = number,
-                    onClick = { onNumberClick(number) }
-                )
-            }
+        for (number in 1..9) {
+            NumberButton(
+                number = number,
+                onClick = { onNumberClick(number) },
+                modifier = Modifier.weight(1f)
+            )
         }
-        
-        // 지우기 버튼
-        ActionButton(
-            text = "지우기",
-            onClick = onClearClick
-        )
     }
 }
 
@@ -54,16 +52,17 @@ fun NumberButton(
 ) {
     Box(
         modifier = modifier
-            .size(36.dp)
-            .background(Color(0xFF87CEEB))
-            .border(2.dp, Color.Gray)
+            .aspectRatio(1f)
+            .padding(2.dp)
+            .background(Color(0xFF1976D2), shape = RoundedCornerShape(8.dp))
+            .border(2.dp, Color(0xFF1976D2), shape = RoundedCornerShape(8.dp))
             .clickable { onClick() }
             .testTag("number_btn_$number"),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = number.toString(),
-            fontSize = 18.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
