@@ -61,16 +61,17 @@ class SudokuGame {
     }
     
     fun generateNewGame() {
-        // 랜덤한 스도쿠 퍼즐 생성
-        val puzzle = generateRandomPuzzle()
-        
+        // 완성된 스도쿠 보드 생성
+        val completeBoard = generateRandomCompleteBoard()
+        solution = completeBoard.map { it.clone() }.toTypedArray()
+        // 퍼즐 생성(일부 셀만 0으로)
+        val puzzle = createPuzzleFromComplete(completeBoard)
         board = puzzle.map { it.clone() }.toTypedArray()
         initialBoard = puzzle.map { it.clone() }.toTypedArray()
-        solution = generateSolution()
     }
     
-    private fun generateRandomPuzzle(): Array<IntArray> {
-        // 더 안정적인 방법: 미리 정의된 완전한 스도쿠 보드들을 기반으로 변형
+    // 완성된 스도쿠 보드 생성 (랜덤 변형)
+    private fun generateRandomCompleteBoard(): Array<IntArray> {
         val baseBoards = listOf(
             arrayOf(
                 intArrayOf(5,3,4,6,7,8,9,1,2),
@@ -106,15 +107,8 @@ class SudokuGame {
                 intArrayOf(9,7,8,3,1,2,6,4,5)
             )
         )
-        
-        // 랜덤하게 기본 보드 선택
         val baseBoard = baseBoards.random()
-        
-        // 행과 열을 랜덤하게 교환하여 변형
-        val transformedBoard = transformBoard(baseBoard)
-        
-        // 일부 셀을 제거하여 퍼즐 생성
-        return createPuzzleFromComplete(transformedBoard)
+        return transformBoard(baseBoard)
     }
     
     private fun transformBoard(board: Array<IntArray>): Array<IntArray> {
@@ -174,6 +168,8 @@ class SudokuGame {
         
         return puzzle
     }
+    
+    private fun generateRandomPuzzle(): Array<IntArray> = createPuzzleFromComplete(generateRandomCompleteBoard())
     
     private fun generateSolution(): Array<IntArray> {
         // 실제로는 스도쿠 해답을 생성하는 알고리즘이 필요
