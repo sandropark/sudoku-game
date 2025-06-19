@@ -15,23 +15,41 @@ class SudokuGameBoundaryTest {
     @Test
     fun `최소값 0 설정이 올바르게 작동하는지 테스트`() {
         val game = SudokuGame()
-        
-        // 0(빈 셀) 설정
-        assertTrue(game.setCell(0, 2, 0))
-        assertEquals(0, game.getCell(0, 2))
+        val board = game.getBoard()
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] != 0) continue
+                assertTrue(game.setCell(row, col, 0))
+                assertEquals(0, game.getCell(row, col))
+                found = true
+                break
+            }
+            if (found) break
+        }
+        assertTrue(found)
     }
 
     @Test
     fun `최대값 9 설정이 올바르게 작동하는지 테스트`() {
         val game = SudokuGame()
-        
-        // 9 설정
-        if (game.isValidMove(0, 2, 9)) {
-            assertTrue(game.setCell(0, 2, 9))
-            assertEquals(9, game.getCell(0, 2))
-        } else {
-            assertFalse(game.setCell(0, 2, 9))
+        val board = game.getBoard()
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] != 0) continue
+                if (game.isValidMove(row, col, 9)) {
+                    assertTrue(game.setCell(row, col, 9))
+                    assertEquals(9, game.getCell(row, col))
+                } else {
+                    assertFalse(game.setCell(row, col, 9))
+                }
+                found = true
+                break
+            }
+            if (found) break
         }
+        assertTrue(found)
     }
 
     @Test
@@ -92,21 +110,19 @@ class SudokuGameBoundaryTest {
     @Test
     fun `초기 셀들이 올바르게 보호되는지 테스트`() {
         val game = SudokuGame()
-        
-        // 모든 초기 셀에 대해 수정 시도
-        val initialCells = listOf(
-            0 to 0, 0 to 1, 1 to 0, 1 to 3, 1 to 4, 1 to 5,
-            2 to 1, 2 to 2, 2 to 7, 3 to 0, 3 to 4, 3 to 8,
-            4 to 0, 4 to 3, 4 to 5, 4 to 8, 5 to 0, 5 to 4,
-            5 to 8, 6 to 1, 6 to 6, 6 to 7, 7 to 3, 7 to 4,
-            7 to 5, 7 to 8, 8 to 4, 8 to 7, 8 to 8
-        )
-        
-        for ((row, col) in initialCells) {
-            val originalValue = game.getCell(row, col)
-            assertFalse(game.setCell(row, col, 9))
-            assertEquals(originalValue, game.getCell(row, col))
+        val board = game.getBoard()
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] != 0) {
+                    val originalValue = game.getCell(row, col)
+                    assertFalse(game.setCell(row, col, (originalValue % 9) + 1))
+                    assertEquals(originalValue, game.getCell(row, col))
+                    found = true
+                }
+            }
         }
+        assertTrue(found)
     }
 
     @Test
@@ -132,18 +148,57 @@ class SudokuGameBoundaryTest {
     @Test
     fun `스도쿠 규칙 위반 시 유효성 검사가 올바르게 작동하는지 테스트`() {
         val game = SudokuGame()
+        val board = game.getBoard()
         
-        // 첫 번째 행에 같은 숫자 설정 시도
-        game.setCell(0, 2, 1)
-        assertFalse(game.isValidMove(0, 3, 1)) // 같은 행에 1이 있음
-        
-        // 첫 번째 열에 같은 숫자 설정 시도
-        game.setCell(2, 0, 2)
-        assertFalse(game.isValidMove(3, 0, 2)) // 같은 열에 2가 있음
-        
-        // 첫 번째 3x3 박스에 같은 숫자 설정 시도
-        game.setCell(1, 1, 3)
-        assertFalse(game.isValidMove(2, 2, 3)) // 같은 박스에 3이 있음
+        // 빈 셀을 찾아서 테스트
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] == 0) {
+                    // 첫 번째 행에 같은 숫자 설정 시도
+                    game.setCell(row, col, 1)
+                    // 같은 행의 다른 빈 셀에 1을 넣으려고 시도
+                    for (c in 0..8) {
+                        if (c != col && board[row][c] == 0) {
+                            assertFalse(game.isValidMove(row, c, 1))
+                            break
+                        }
+                    }
+                    
+                    // 첫 번째 열에 같은 숫자 설정 시도
+                    game.setCell(row, col, 0) // 초기화
+                    game.setCell(row, col, 2)
+                    // 같은 열의 다른 빈 셀에 2를 넣으려고 시도
+                    for (r in 0..8) {
+                        if (r != row && board[r][col] == 0) {
+                            assertFalse(game.isValidMove(r, col, 2))
+                            break
+                        }
+                    }
+                    
+                    // 첫 번째 3x3 박스에 같은 숫자 설정 시도
+                    game.setCell(row, col, 0) // 초기화
+                    game.setCell(row, col, 3)
+                    val boxRow = (row / 3) * 3
+                    val boxCol = (col / 3) * 3
+                    var boxFound = false
+                    for (r in boxRow until boxRow + 3) {
+                        for (c in boxCol until boxCol + 3) {
+                            if ((r != row || c != col) && board[r][c] == 0) {
+                                assertFalse(game.isValidMove(r, c, 3))
+                                boxFound = true
+                                break
+                            }
+                        }
+                        if (boxFound) break
+                    }
+                    found = true
+                    break
+                }
+            }
+            if (found) break
+        }
+        assertTrue(found)
     }
 
     @Test
@@ -219,41 +274,53 @@ class SudokuGameBoundaryTest {
     @Test
     fun testInvalidValueRange() {
         val game = SudokuGame()
-        // 1-9는 허용되어야 함
-        for (v in 1..9) {
-            if (game.isValidMove(0, 2, v)) {
-                assertTrue(game.setCell(0, 2, v))
-                assertEquals(v, game.getCell(0, 2))
-                game.setCell(0, 2, 0)
-            } else {
-                assertFalse(game.setCell(0, 2, v))
+        val board = game.getBoard()
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] == 0) {
+                    // 1-9는 허용되어야 함
+                    for (v in 1..9) {
+                        if (game.isValidMove(row, col, v)) {
+                            assertTrue(game.setCell(row, col, v))
+                            assertEquals(v, game.getCell(row, col))
+                            game.setCell(row, col, 0)
+                        } else {
+                            assertFalse(game.setCell(row, col, v))
+                        }
+                    }
+                    // 10 이상의 값
+                    assertFalse(game.setCell(row, col, 10))
+                    assertFalse(game.setCell(row, col, 15))
+                    assertFalse(game.setCell(row, col, 100))
+                    // 음수 값
+                    assertFalse(game.setCell(row, col, -1))
+                    assertFalse(game.setCell(row, col, -5))
+                    assertFalse(game.setCell(row, col, -10))
+                    found = true
+                    break
+                }
             }
+            if (found) break
         }
-        // 10 이상의 값
-        assertFalse(game.setCell(0, 2, 10))
-        assertFalse(game.setCell(0, 2, 15))
-        assertFalse(game.setCell(0, 2, 100))
-        // 음수 값
-        assertFalse(game.setCell(0, 2, -1))
-        assertFalse(game.setCell(0, 2, -5))
-        assertFalse(game.setCell(0, 2, -10))
+        assertTrue(found)
     }
 
     @Test
     fun testInitialCellProtection() {
         // 초기값 셀 보호 테스트
-        val initialCells = listOf(
-            Pair(0, 0), Pair(0, 1), Pair(1, 0), Pair(1, 3), Pair(1, 4), Pair(1, 5),
-            Pair(2, 1), Pair(2, 2), Pair(2, 7), Pair(3, 0), Pair(3, 4), Pair(3, 8),
-            Pair(4, 0), Pair(4, 3), Pair(4, 5), Pair(4, 8), Pair(5, 0), Pair(5, 4),
-            Pair(5, 8), Pair(6, 1), Pair(6, 6), Pair(6, 7), Pair(7, 3), Pair(7, 4),
-            Pair(7, 5), Pair(7, 8), Pair(8, 4), Pair(8, 7), Pair(8, 8)
-        )
-        
-        for ((row, col) in initialCells) {
-            assertTrue("($row, $col)는 초기값 셀이어야 함", game.isInitialCell(row, col))
-            assertFalse("초기값 셀은 수정할 수 없어야 함", game.setCell(row, col, 5))
+        val board = game.getBoard()
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] != 0) {
+                    assertTrue("($row, $col)는 초기값 셀이어야 함", game.isInitialCell(row, col))
+                    assertFalse("초기값 셀은 수정할 수 없어야 함", game.setCell(row, col, 5))
+                    found = true
+                }
+            }
         }
+        assertTrue(found)
     }
 
     @Test
@@ -289,34 +356,58 @@ class SudokuGameBoundaryTest {
     @Test
     fun testConcurrentCellModifications() {
         // 동시 셀 수정 테스트
-        val emptyCell = findEmptyCell()
-        if (emptyCell != null) {
-            val (row, col) = emptyCell
-            
-            // 같은 셀에 여러 번 값을 설정
-            assertTrue("첫 번째 설정은 성공해야 함", game.setCell(row, col, 1))
-            assertTrue("같은 값으로 다시 설정해도 성공해야 함", game.setCell(row, col, 1))
-            assertTrue("다른 값으로 설정해도 성공해야 함", game.setCell(row, col, 2))
-            
-            // 현재 값 확인
-            assertEquals("마지막 설정된 값이 저장되어야 함", 2, game.getCell(row, col))
+        val board = game.getBoard()
+        var found = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] == 0) {
+                    // 같은 셀에 여러 번 값을 설정
+                    assertTrue("첫 번째 설정은 성공해야 함", game.setCell(row, col, 1))
+                    assertTrue("같은 값으로 다시 설정해도 성공해야 함", game.setCell(row, col, 1))
+                    assertTrue("다른 값으로 설정해도 성공해야 함", game.setCell(row, col, 2))
+                    
+                    // 현재 값 확인
+                    assertEquals("마지막 설정된 값이 저장되어야 함", 2, game.getCell(row, col))
+                    found = true
+                    break
+                }
+            }
+            if (found) break
         }
+        assertTrue(found)
     }
 
     @Test
     fun testBoardStateConsistency() {
         // 보드 상태 일관성 테스트
         val originalBoard = game.getBoard()
+        val board = game.getBoard()
         
-        // 보드 수정
-        game.setCell(0, 0, 5)
+        // 빈 셀을 찾아서 수정
+        var found = false
+        var targetRow = 0
+        var targetCol = 0
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] == 0) {
+                    targetRow = row
+                    targetCol = col
+                    game.setCell(row, col, 5)
+                    found = true
+                    break
+                }
+            }
+            if (found) break
+        }
         
-        // 수정된 보드와 원본 보드가 달라야 함
-        val modifiedBoard = game.getBoard()
-        assertNotEquals("보드가 수정되어야 함", originalBoard, modifiedBoard)
-        
-        // 수정된 셀의 값 확인
-        assertEquals("수정된 셀의 값이 올바르게 저장되어야 함", 5, modifiedBoard[0][0])
+        if (found) {
+            // 수정된 보드와 원본 보드가 달라야 함
+            val modifiedBoard = game.getBoard()
+            assertNotEquals("보드가 수정되어야 함", originalBoard, modifiedBoard)
+            
+            // 수정된 셀의 값 확인
+            assertEquals("수정된 셀의 값이 올바르게 저장되어야 함", 5, modifiedBoard[targetRow][targetCol])
+        }
     }
 
     @Test

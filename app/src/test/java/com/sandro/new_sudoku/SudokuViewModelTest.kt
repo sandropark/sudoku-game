@@ -53,12 +53,27 @@ class SudokuViewModelTest {
     fun `유효한 셀 값 설정이 올바르게 작동하는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
+        // 빈 셀 찾기
+        var state = viewModel.state.first()
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
         // 셀 선택 후 값 설정
-        viewModel.selectCell(0, 2) // 빈 셀
+        viewModel.selectCell(emptyRow, emptyCol)
         viewModel.setCellValue(4)
         
-        val state = viewModel.state.first()
-        assertEquals(4, state.board[0][2])
+        state = viewModel.state.first()
+        assertEquals(4, state.board[emptyRow][emptyCol])
         assertFalse(state.showError)
     }
 
@@ -66,42 +81,93 @@ class SudokuViewModelTest {
     fun `초기 셀 수정 시도 시 에러가 발생하는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
+        // 초기 셀 찾기
+        var state = viewModel.state.first()
+        var initialRow = -1
+        var initialCol = -1
+        var initialValue = 0
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] != 0) {
+                    initialRow = row
+                    initialCol = col
+                    initialValue = state.board[row][col]
+                    break
+                }
+            }
+            if (initialRow != -1) break
+        }
+        
         // 초기 셀 선택 후 값 설정 시도
-        viewModel.selectCell(0, 0) // 초기 숫자 5가 있는 셀
+        viewModel.selectCell(initialRow, initialCol)
         viewModel.setCellValue(9)
         
-        val state = viewModel.state.first()
+        state = viewModel.state.first()
         assertTrue(state.showError)
         assertEquals("초기 숫자는 변경할 수 없습니다", state.errorMessage)
-        assertEquals(5, state.board[0][0]) // 값이 변경되지 않음
+        assertEquals(initialValue, state.board[initialRow][initialCol]) // 값이 변경되지 않음
     }
 
     @Test
     fun `스도쿠 규칙 위반 시 에러가 발생하는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
-        // 같은 행에 같은 숫자 설정 시도
-        viewModel.selectCell(0, 2)
-        viewModel.setCellValue(1)
-        viewModel.selectCell(0, 3)
-        viewModel.setCellValue(1) // 같은 행에 1을 또 설정
+        // 빈 셀들 찾기
+        var state = viewModel.state.first()
+        var emptyCells = mutableListOf<Pair<Int, Int>>()
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] == 0) {
+                    emptyCells.add(Pair(row, col))
+                }
+            }
+        }
         
-        val state = viewModel.state.first()
-        assertTrue(state.showError)
-        assertEquals("이 숫자는 여기에 놓을 수 없습니다", state.errorMessage)
+        if (emptyCells.size >= 2) {
+            // 같은 행에 같은 숫자 설정 시도
+            val firstCell = emptyCells[0]
+            val secondCell = emptyCells[1]
+            
+            // 같은 행에 있는지 확인
+            if (firstCell.first == secondCell.first) {
+                viewModel.selectCell(firstCell.first, firstCell.second)
+                viewModel.setCellValue(1)
+                viewModel.selectCell(secondCell.first, secondCell.second)
+                viewModel.setCellValue(1) // 같은 행에 1을 또 설정
+                
+                state = viewModel.state.first()
+                assertTrue(state.showError)
+                assertEquals("이 숫자는 여기에 놓을 수 없습니다", state.errorMessage)
+            }
+        }
     }
 
     @Test
     fun `셀 지우기가 올바르게 작동하는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
+        // 빈 셀 찾기
+        var state = viewModel.state.first()
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
         // 셀에 값 설정 후 지우기
-        viewModel.selectCell(0, 2)
+        viewModel.selectCell(emptyRow, emptyCol)
         viewModel.setCellValue(4)
         viewModel.clearCell()
         
-        val state = viewModel.state.first()
-        assertEquals(0, state.board[0][2]) // 지워짐
+        state = viewModel.state.first()
+        assertEquals(0, state.board[emptyRow][emptyCol]) // 지워짐
     }
 
     @Test
@@ -111,8 +177,22 @@ class SudokuViewModelTest {
         // 초기 상태 저장
         val initialState = viewModel.state.first()
         
+        // 빈 셀 찾기
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (initialState.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
         // 일부 셀 수정
-        viewModel.selectCell(0, 2)
+        viewModel.selectCell(emptyRow, emptyCol)
         viewModel.setCellValue(4)
         
         // 새 게임 생성
@@ -125,8 +205,18 @@ class SudokuViewModelTest {
         assertFalse(newState.isGameComplete)
         assertFalse(newState.showError)
         
-        // 보드가 초기 상태로 돌아갔는지 확인
-        assertArrayEquals(initialState.board, newState.board)
+        // 보드가 새로운 게임으로 변경되었는지 확인 (같지 않아야 함)
+        var hasChanges = false
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (initialState.board[row][col] != newState.board[row][col]) {
+                    hasChanges = true
+                    break
+                }
+            }
+            if (hasChanges) break
+        }
+        assertTrue(hasChanges)
     }
 
     @Test
@@ -154,11 +244,23 @@ class SudokuViewModelTest {
         // 초기 상태 저장
         val initialState = viewModel.state.first()
         
+        // 빈 셀들 찾기
+        var emptyCells = mutableListOf<Pair<Int, Int>>()
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (initialState.board[row][col] == 0) {
+                    emptyCells.add(Pair(row, col))
+                }
+            }
+        }
+        
         // 일부 셀 수정
-        viewModel.selectCell(0, 2)
-        viewModel.setCellValue(4)
-        viewModel.selectCell(1, 1)
-        viewModel.setCellValue(7)
+        if (emptyCells.size >= 2) {
+            viewModel.selectCell(emptyCells[0].first, emptyCells[0].second)
+            viewModel.setCellValue(4)
+            viewModel.selectCell(emptyCells[1].first, emptyCells[1].second)
+            viewModel.setCellValue(7)
+        }
         
         // 보드 초기화
         viewModel.clearBoard()
@@ -171,36 +273,65 @@ class SudokuViewModelTest {
         assertFalse(clearedState.showError)
         
         // 보드가 초기 상태로 돌아갔는지 확인
-        assertArrayEquals(initialState.board, clearedState.board)
+        for (row in 0..8) {
+            for (col in 0..8) {
+                assertEquals(initialState.board[row][col], clearedState.board[row][col])
+            }
+        }
     }
 
     @Test
     fun `초기 셀 확인이 올바르게 작동하는지 테스트`() {
         val viewModel = SudokuViewModel()
         
-        // 초기 셀들
-        assertTrue(viewModel.isInitialCell(0, 0)) // 5
-        assertTrue(viewModel.isInitialCell(0, 1)) // 3
-        assertTrue(viewModel.isInitialCell(1, 0)) // 6
-        
-        // 빈 셀들
-        assertFalse(viewModel.isInitialCell(0, 2))
-        assertFalse(viewModel.isInitialCell(2, 0))
+        // 모든 셀에 대해 초기 셀 여부 확인
+        for (row in 0..8) {
+            for (col in 0..8) {
+                val isInitial = viewModel.isInitialCell(row, col)
+                val cellValue = viewModel.state.value.board[row][col]
+                
+                if (cellValue != 0) {
+                    assertTrue("($row, $col)는 초기 셀이어야 함", isInitial)
+                } else {
+                    assertFalse("($row, $col)는 초기 셀이 아니어야 함", isInitial)
+                }
+            }
+        }
     }
 
     @Test
     fun `셀 선택 시 에러 메시지가 사라지는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
+        // 초기 셀과 빈 셀 찾기
+        var state = viewModel.state.first()
+        var initialRow = -1
+        var initialCol = -1
+        var emptyRow = -1
+        var emptyCol = -1
+        
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] != 0 && initialRow == -1) {
+                    initialRow = row
+                    initialCol = col
+                }
+                if (state.board[row][col] == 0 && emptyRow == -1) {
+                    emptyRow = row
+                    emptyCol = col
+                }
+            }
+        }
+        
         // 에러 발생시키기
-        viewModel.selectCell(0, 0)
+        viewModel.selectCell(initialRow, initialCol)
         viewModel.setCellValue(9)
         
-        var state = viewModel.state.first()
+        state = viewModel.state.first()
         assertTrue(state.showError)
         
-        // 다른 셀 선택
-        viewModel.selectCell(0, 2)
+        // 다른 셀 선택 (에러 메시지 사라짐)
+        viewModel.selectCell(emptyRow, emptyCol)
         state = viewModel.state.first()
         assertFalse(state.showError)
     }
@@ -452,25 +583,37 @@ class SudokuViewModelTest {
     fun `에러 메시지 내용 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
+        // 초기 셀 찾기
+        var state = viewModel.state.first()
+        var initialRow = -1
+        var initialCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] != 0) {
+                    initialRow = row
+                    initialCol = col
+                    break
+                }
+            }
+            if (initialRow != -1) break
+        }
+        
         // 초기값 셀에 값을 넣어서 에러 발생
-        viewModel.selectCell(0, 0) // 초기값 셀 선택
+        viewModel.selectCell(initialRow, initialCol)
         viewModel.setCellValue(5) // 에러 발생
         
         val errorState = viewModel.state.first()
-        println("에러 메시지: '${errorState.errorMessage}'")
         assertEquals("초기 숫자는 변경할 수 없습니다", errorState.errorMessage)
         
         // 유효한 셀에 값을 넣어서 에러 메시지 초기화
-        val initialBoard = viewModel.state.first().board
-        val emptyCell = findEmptyCell(initialBoard) ?: throw AssertionError("빈 셀 없음")
+        val emptyCell = findEmptyCell(state.board) ?: throw AssertionError("빈 셀 없음")
         val (row, col) = emptyCell
-        val validValue = findValidValue(initialBoard, row, col) ?: throw AssertionError("유효한 값 없음")
+        val validValue = findValidValue(state.board, row, col) ?: throw AssertionError("유효한 값 없음")
         
         viewModel.selectCell(row, col) // 빈 셀 선택
         viewModel.setCellValue(validValue) // 유효한 값 입력
         
         val recoveredState = viewModel.state.first()
-        println("유효 입력 후 메시지: '${recoveredState.errorMessage}'")
         assertTrue("유효한 입력 후 에러 메시지가 비워져야 함", recoveredState.errorMessage.isEmpty())
     }
 

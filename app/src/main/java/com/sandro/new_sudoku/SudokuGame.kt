@@ -61,22 +61,118 @@ class SudokuGame {
     }
     
     fun generateNewGame() {
-        // 간단한 스도쿠 퍼즐 생성 (실제로는 더 복잡한 알고리즘 필요)
-        val puzzle = arrayOf(
-            intArrayOf(5,3,0,0,7,0,0,0,0),
-            intArrayOf(6,0,0,1,9,5,0,0,0),
-            intArrayOf(0,9,8,0,0,0,0,6,0),
-            intArrayOf(8,0,0,0,6,0,0,0,3),
-            intArrayOf(4,0,0,8,0,3,0,0,1),
-            intArrayOf(7,0,0,0,2,0,0,0,6),
-            intArrayOf(0,6,0,0,0,0,2,8,0),
-            intArrayOf(0,0,0,4,1,9,0,0,5),
-            intArrayOf(0,0,0,0,8,0,0,7,9)
-        )
+        // 랜덤한 스도쿠 퍼즐 생성
+        val puzzle = generateRandomPuzzle()
         
         board = puzzle.map { it.clone() }.toTypedArray()
         initialBoard = puzzle.map { it.clone() }.toTypedArray()
         solution = generateSolution()
+    }
+    
+    private fun generateRandomPuzzle(): Array<IntArray> {
+        // 더 안정적인 방법: 미리 정의된 완전한 스도쿠 보드들을 기반으로 변형
+        val baseBoards = listOf(
+            arrayOf(
+                intArrayOf(5,3,4,6,7,8,9,1,2),
+                intArrayOf(6,7,2,1,9,5,3,4,8),
+                intArrayOf(1,9,8,3,4,2,5,6,7),
+                intArrayOf(8,5,9,7,6,1,4,2,3),
+                intArrayOf(4,2,6,8,5,3,7,9,1),
+                intArrayOf(7,1,3,9,2,4,8,5,6),
+                intArrayOf(9,6,1,5,3,7,2,8,4),
+                intArrayOf(2,8,7,4,1,9,6,3,5),
+                intArrayOf(3,4,5,2,8,6,1,7,9)
+            ),
+            arrayOf(
+                intArrayOf(8,1,2,7,5,3,6,4,9),
+                intArrayOf(9,4,3,6,8,2,1,7,5),
+                intArrayOf(6,7,5,4,9,1,2,8,3),
+                intArrayOf(1,5,4,2,3,7,8,9,6),
+                intArrayOf(3,6,9,8,4,5,7,2,1),
+                intArrayOf(2,8,7,1,6,9,5,3,4),
+                intArrayOf(5,2,1,9,7,4,3,6,8),
+                intArrayOf(4,3,8,5,2,6,9,1,7),
+                intArrayOf(7,9,6,3,1,8,4,5,2)
+            ),
+            arrayOf(
+                intArrayOf(1,2,3,4,5,6,7,8,9),
+                intArrayOf(4,5,6,7,8,9,1,2,3),
+                intArrayOf(7,8,9,1,2,3,4,5,6),
+                intArrayOf(2,3,1,5,6,4,8,9,7),
+                intArrayOf(5,6,4,8,9,7,2,3,1),
+                intArrayOf(8,9,7,2,3,1,5,6,4),
+                intArrayOf(3,1,2,6,4,5,9,7,8),
+                intArrayOf(6,4,5,9,7,8,3,1,2),
+                intArrayOf(9,7,8,3,1,2,6,4,5)
+            )
+        )
+        
+        // 랜덤하게 기본 보드 선택
+        val baseBoard = baseBoards.random()
+        
+        // 행과 열을 랜덤하게 교환하여 변형
+        val transformedBoard = transformBoard(baseBoard)
+        
+        // 일부 셀을 제거하여 퍼즐 생성
+        return createPuzzleFromComplete(transformedBoard)
+    }
+    
+    private fun transformBoard(board: Array<IntArray>): Array<IntArray> {
+        val transformed = board.map { it.clone() }.toTypedArray()
+        
+        // 랜덤하게 몇 번의 행/열 교환 수행
+        repeat((1..3).random()) {
+            when ((0..1).random()) {
+                0 -> {
+                    // 같은 박스 내에서 행 교환
+                    val box = (0..2).random() * 3
+                    val row1 = box + (0..2).random()
+                    val row2 = box + (0..2).random()
+                    if (row1 != row2) {
+                        val temp = transformed[row1].clone()
+                        transformed[row1] = transformed[row2]
+                        transformed[row2] = temp
+                    }
+                }
+                1 -> {
+                    // 같은 박스 내에서 열 교환
+                    val box = (0..2).random() * 3
+                    val col1 = box + (0..2).random()
+                    val col2 = box + (0..2).random()
+                    if (col1 != col2) {
+                        for (row in 0..8) {
+                            val temp = transformed[row][col1]
+                            transformed[row][col1] = transformed[row][col2]
+                            transformed[row][col2] = temp
+                        }
+                    }
+                }
+            }
+        }
+        
+        return transformed
+    }
+    
+    private fun createPuzzleFromComplete(completeBoard: Array<IntArray>): Array<IntArray> {
+        val puzzle = completeBoard.map { it.clone() }.toTypedArray()
+        
+        // 랜덤하게 셀을 제거 (약 60-70% 제거하여 적당한 난이도 유지)
+        val cellsToRemove = (45..55).random() // 81개 셀 중 45-55개 제거
+        
+        val positions = mutableListOf<Pair<Int, Int>>()
+        for (row in 0..8) {
+            for (col in 0..8) {
+                positions.add(Pair(row, col))
+            }
+        }
+        positions.shuffle()
+        
+        for (i in 0 until cellsToRemove) {
+            val (row, col) = positions[i]
+            puzzle[row][col] = 0
+        }
+        
+        return puzzle
     }
     
     private fun generateSolution(): Array<IntArray> {
