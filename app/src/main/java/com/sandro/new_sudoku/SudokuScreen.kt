@@ -23,7 +23,7 @@ fun SudokuScreen(
 ) {
     val state by viewModel.state.collectAsState()
     
-    BoxWithConstraints(
+    Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
@@ -55,7 +55,7 @@ fun SudokuScreen(
                     viewModel.selectCell(row, col)
                 },
                 modifier = Modifier
-                    .size(300.dp)
+                    .size(400.dp)
                     .testTag("sudoku_board")
             )
             

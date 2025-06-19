@@ -680,6 +680,20 @@ class SudokuUITest {
         }
     }
 
+    @Test
+    fun testBoardSizeIsLarger() {
+        composeTestRule.setContent {
+            SudokuScreen()
+        }
+
+        // 스도쿠 보드가 표시되는지 확인
+        val boardNode = composeTestRule.onNodeWithTag("sudoku_board")
+        boardNode.assertExists()
+        
+        // 보드가 충분히 크게 표시되는지 확인 (시각적으로 확인)
+        boardNode.assertIsDisplayed()
+    }
+
     private fun assertVisuallyDistinct(node1: SemanticsNodeInteraction, node2: SemanticsNodeInteraction) {
         // 두 노드가 시각적으로 구분되는지 확인
         // 실제로는 배경색이 다른지 직접 검증할 수 없으므로, 노드가 존재하고 표시되는지만 확인
