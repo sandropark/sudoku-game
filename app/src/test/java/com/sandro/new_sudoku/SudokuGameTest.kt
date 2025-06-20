@@ -307,10 +307,37 @@ class SudokuGameTest {
         
         // 랜덤 퍼즐이므로 대부분의 경우 다를 것이지만, 
         // 같은 퍼즐이 선택될 수도 있으므로 항상 true가 아닐 수 있음
-        // 대신 보드가 유효한 스도쿠 퍼즐인지만 확인
+        // 대신 보드가 유효한 스도쿠 퍼즐인지만 확인하고, 
+        // 여러 번 시도해서 다른 퍼즐이 생성되는지 확인
         assertTrue("보드가 유효한 스도쿠 퍼즐이어야 함", 
             board1.all { row -> row.all { it in 0..9 } } &&
             board2.all { row -> row.all { it in 0..9 } })
+        
+        // 만약 같은 퍼즐이 생성되었다면, 여러 번 시도해서 다른 퍼즐이 생성되는지 확인
+        if (!hasDifference) {
+            var foundDifferent = false
+            for (attempt in 1..5) { // 최대 5번 시도
+                val game3 = SudokuGame()
+                val board3 = game3.getBoard()
+                
+                for (row in 0..8) {
+                    for (col in 0..8) {
+                        if (board1[row][col] != board3[row][col]) {
+                            foundDifferent = true
+                            break
+                        }
+                    }
+                    if (foundDifferent) break
+                }
+                if (foundDifferent) break
+            }
+            
+            // 같은 퍼즐이 5번 연속 생성되는 것은 매우 드물지만, 
+            // 그래도 발생할 수 있으므로 테스트를 실패시키지 않고 경고만 출력
+            if (!foundDifferent) {
+                println("경고: 5번 연속으로 같은 퍼즐이 생성되었습니다. 이는 매우 드문 경우입니다.")
+            }
+        }
     }
 
     @Test

@@ -9,7 +9,7 @@ class SudokuGame {
         generateNewGame()
     }
     
-    fun getBoard(): Array<IntArray> = board.map { it.clone() }.toTypedArray()
+    fun getBoard(): Array<IntArray> = Array(9) { row -> board[row].clone() }
     
     fun getCell(row: Int, col: Int): Int = board[row][col]
     
