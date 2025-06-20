@@ -1,7 +1,11 @@
 package com.sandro.new_sudoku
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 
 class SudokuGameTest {
 
@@ -373,5 +377,120 @@ class SudokuGameTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `isValidMove가 올바르게 작동하는지 테스트`() {
+        val game = SudokuGame()
+        val board = game.getBoard()
+        
+        // 빈 셀 찾기
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!game.isInitialCell(row, col)) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 이 셀에 넣을 수 있는 값 찾기
+        var validValue: Int? = null
+        for (value in 1..9) {
+            if (game.isValidMove(emptyRow, emptyCol, value)) {
+                validValue = value
+                break
+            }
+        }
+        
+        assertNotNull("넣을 수 있는 값이 있어야 함", validValue)
+        
+        // 값 설정
+        val success = game.setCell(emptyRow, emptyCol, validValue!!)
+        assertTrue("셀 설정이 성공해야 함", success)
+        
+        // 설정된 값 확인
+        assertEquals(validValue, game.getCell(emptyRow, emptyCol))
+        
+        // 같은 행, 열, 박스에 같은 값이 있으면 유효하지 않아야 함
+        val sameRow = emptyRow
+        val sameCol = emptyCol
+        val boxRow = (emptyRow / 3) * 3
+        val boxCol = (emptyCol / 3) * 3
+        
+        // 같은 행의 다른 셀에 같은 값 설정 시도
+        for (col in 0..8) {
+            if (col != emptyCol && !game.isInitialCell(sameRow, col)) {
+                assertFalse("같은 행에 같은 값이 있으면 유효하지 않아야 함", 
+                           game.isValidMove(sameRow, col, validValue))
+            }
+        }
+        
+        // 같은 열의 다른 셀에 같은 값 설정 시도
+        for (row in 0..8) {
+            if (row != emptyRow && !game.isInitialCell(row, sameCol)) {
+                assertFalse("같은 열에 같은 값이 있으면 유효하지 않아야 함", 
+                           game.isValidMove(row, sameCol, validValue))
+            }
+        }
+        
+        // 같은 박스의 다른 셀에 같은 값 설정 시도
+        for (row in boxRow until boxRow + 3) {
+            for (col in boxCol until boxCol + 3) {
+                if ((row != emptyRow || col != emptyCol) && !game.isInitialCell(row, col)) {
+                    assertFalse("같은 박스에 같은 값이 있으면 유효하지 않아야 함", 
+                               game.isValidMove(row, col, validValue))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `빈 셀에 값 설정이 올바르게 작동하는지 테스트`() {
+        val game = SudokuGame()
+        
+        // 빈 셀 찾기
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!game.isInitialCell(row, col)) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 유효한 값 찾기
+        var validValue: Int? = null
+        for (value in 1..9) {
+            if (game.isValidMove(emptyRow, emptyCol, value)) {
+                validValue = value
+                break
+            }
+        }
+        
+        assertNotNull("유효한 값이 있어야 함", validValue)
+        
+        // 값 설정
+        val success = game.setCell(emptyRow, emptyCol, validValue!!)
+        assertTrue("셀 설정이 성공해야 함", success)
+        
+        // 값이 제대로 설정되었는지 확인
+        assertEquals(validValue, game.getCell(emptyRow, emptyCol))
+        
+        // 보드에서도 확인
+        val board = game.getBoard()
+        assertEquals(validValue, board[emptyRow][emptyCol])
     }
 }

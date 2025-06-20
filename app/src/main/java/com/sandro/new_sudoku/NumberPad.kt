@@ -27,19 +27,24 @@ fun NumberPad(
     onClearClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+    Box(
+        modifier = modifier.testTag("number_pad")
     ) {
-        for (number in 1..9) {
-            NumberButton(
-                number = number,
-                onClick = { onNumberClick(number) },
-                modifier = Modifier.weight(1f)
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+                .testTag("number_pad_row"),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            for (number in 1..9) {
+                NumberButton(
+                    number = number,
+                    onClick = { onNumberClick(number) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }

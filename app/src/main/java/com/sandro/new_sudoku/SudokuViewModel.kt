@@ -36,7 +36,8 @@ class SudokuViewModel : ViewModel() {
         _state.value = _state.value.copy(
             selectedRow = row,
             selectedCol = col,
-            showError = false
+            showError = false,
+            errorMessage = ""
         )
     }
     
@@ -45,7 +46,10 @@ class SudokuViewModel : ViewModel() {
         val row = currentState.selectedRow
         val col = currentState.selectedCol
         
-        if (row == -1 || col == -1) return
+        if (row == -1 || col == -1) {
+            _state.value = currentState.copy(showError = false, errorMessage = "")
+            return
+        }
         
         if (game.isInitialCell(row, col)) {
             _state.value = currentState.copy(
@@ -73,7 +77,29 @@ class SudokuViewModel : ViewModel() {
     }
     
     fun clearCell() {
-        setCellValue(0)
+        val currentState = _state.value
+        val row = currentState.selectedRow
+        val col = currentState.selectedCol
+        
+        if (row == -1 || col == -1) {
+            _state.value = currentState.copy(showError = false, errorMessage = "")
+            return
+        }
+        
+        if (game.isInitialCell(row, col)) {
+            _state.value = currentState.copy(
+                showError = true,
+                errorMessage = "초기 숫자는 변경할 수 없습니다"
+            )
+            return
+        }
+        
+        val success = game.setCell(row, col, 0)
+        _state.value = currentState.copy(
+            board = game.getBoard(),
+            showError = false,
+            errorMessage = ""
+        )
     }
     
     fun newGame() {
@@ -110,5 +136,12 @@ class SudokuViewModel : ViewModel() {
     
     fun isInitialCell(row: Int, col: Int): Boolean {
         return game.isInitialCell(row, col)
+    }
+    
+    fun clearError() {
+        _state.value = _state.value.copy(
+            showError = false,
+            errorMessage = ""
+        )
     }
 } 

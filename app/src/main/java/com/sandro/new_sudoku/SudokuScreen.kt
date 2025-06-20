@@ -1,6 +1,7 @@
 package com.sandro.new_sudoku
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,6 +35,15 @@ fun SudokuScreen(
     viewModel: SudokuViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val showError = state.showError
+    val errorMessage = state.errorMessage
+
+    if (showError && errorMessage.isNotEmpty()) {
+        LaunchedEffect(errorMessage) {
+            kotlinx.coroutines.delay(2000)
+            viewModel.clearError()
+        }
+    }
     
     Column(
         modifier = modifier
@@ -63,7 +74,7 @@ fun SudokuScreen(
             )
         }
         Spacer(Modifier.height(8.dp))
-        ActionBar()
+        ActionBar(viewModel)
         Spacer(Modifier.height(8.dp))
         NumberPad(
             onNumberClick = { number ->
@@ -133,7 +144,7 @@ fun StatusBar() {
 }
 
 @Composable
-fun ActionBar() {
+fun ActionBar(viewModel: SudokuViewModel) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,16 +152,23 @@ fun ActionBar() {
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         ActionButton("실행 취소")
-        ActionButton("지우기")
+        ActionButton("지우기", testTag = "action_btn_지우기", onClick = { viewModel.clearCell() })
         ActionButton("노트")
         ActionButton("힌트", badgeCount = 1)
+        ActionButton("새 게임", testTag = "action_btn_새게임", onClick = { viewModel.newGame() })
+        ActionButton("해답 보기", testTag = "action_btn_해답보기", onClick = { viewModel.solveGame() })
     }
 }
 
 @Composable
-fun ActionButton(text: String, badgeCount: Int = 0) {
-    Box {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+fun ActionButton(text: String, badgeCount: Int = 0, testTag: String? = null, onClick: (() -> Unit)? = null) {
+    Box(
+        modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
+        ) {
             // 실제 아이콘은 프로젝트에 맞게 교체
             Text("⬜", fontSize = 20.sp)
             Text(text, style = MaterialTheme.typography.bodySmall)
