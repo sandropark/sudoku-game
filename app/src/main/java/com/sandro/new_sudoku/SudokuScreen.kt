@@ -151,7 +151,7 @@ fun ActionBar(viewModel: SudokuViewModel) {
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        ActionButton("실행 취소")
+        ActionButton("실행취소", testTag = "action_btn_실행취소", onClick = { viewModel.onUndo() })
         ActionButton("지우기", testTag = "action_btn_지우기", onClick = { viewModel.clearCell() })
         ActionButton("노트")
         ActionButton("힌트", badgeCount = 1)

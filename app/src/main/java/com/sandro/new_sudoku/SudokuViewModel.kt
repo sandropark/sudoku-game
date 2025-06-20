@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Stack
 
 data class SudokuState(
     val board: Array<IntArray> = Array(9) { IntArray(9) { 0 } },
@@ -23,6 +24,8 @@ class SudokuViewModel : ViewModel() {
         isInitialCells = generateInitialCellsInfo()
     ))
     val state: StateFlow<SudokuState> = _state.asStateFlow()
+    
+    private val undoStack = Stack<Triple<Array<IntArray>, Int, Int>>()
     
     private fun generateInitialCellsInfo(): Array<BooleanArray> {
         return Array(9) { row ->
@@ -45,12 +48,10 @@ class SudokuViewModel : ViewModel() {
         val currentState = _state.value
         val row = currentState.selectedRow
         val col = currentState.selectedCol
-        
         if (row == -1 || col == -1) {
             _state.value = currentState.copy(showError = false, errorMessage = "")
             return
         }
-        
         if (game.isInitialCell(row, col)) {
             _state.value = currentState.copy(
                 showError = true,
@@ -58,7 +59,11 @@ class SudokuViewModel : ViewModel() {
             )
             return
         }
-        
+        undoStack.push(Triple(
+            game.getBoard().map { it.copyOf() }.toTypedArray(),
+            row,
+            col
+        ))
         val success = game.setCell(row, col, value)
         if (!success) {
             _state.value = currentState.copy(
@@ -67,7 +72,6 @@ class SudokuViewModel : ViewModel() {
             )
             return
         }
-        
         _state.value = currentState.copy(
             board = game.getBoard(),
             showError = false,
@@ -80,12 +84,10 @@ class SudokuViewModel : ViewModel() {
         val currentState = _state.value
         val row = currentState.selectedRow
         val col = currentState.selectedCol
-        
         if (row == -1 || col == -1) {
             _state.value = currentState.copy(showError = false, errorMessage = "")
             return
         }
-        
         if (game.isInitialCell(row, col)) {
             _state.value = currentState.copy(
                 showError = true,
@@ -93,7 +95,11 @@ class SudokuViewModel : ViewModel() {
             )
             return
         }
-        
+        undoStack.push(Triple(
+            game.getBoard().map { it.copyOf() }.toTypedArray(),
+            row,
+            col
+        ))
         val success = game.setCell(row, col, 0)
         if (!success) {
             _state.value = currentState.copy(
@@ -150,5 +156,19 @@ class SudokuViewModel : ViewModel() {
             showError = false,
             errorMessage = ""
         )
+    }
+    
+    fun onUndo() {
+        if (undoStack.isNotEmpty()) {
+            val (prevBoard, prevRow, prevCol) = undoStack.pop()
+            game.setBoard(prevBoard.map { it.copyOf() }.toTypedArray())
+            _state.value = _state.value.copy(
+                board = game.getBoard(),
+                selectedRow = prevRow,
+                selectedCol = prevCol,
+                showError = false,
+                errorMessage = ""
+            )
+        }
     }
 } 

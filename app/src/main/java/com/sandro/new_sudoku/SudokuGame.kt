@@ -194,4 +194,12 @@ class SudokuGame {
     fun clearBoard() {
         board = initialBoard.map { it.clone() }.toTypedArray()
     }
+    
+    fun setBoard(newBoard: Array<IntArray>) {
+        for (row in 0..8) {
+            for (col in 0..8) {
+                board[row][col] = newBoard[row][col]
+            }
+        }
+    }
 } 

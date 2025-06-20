@@ -1100,4 +1100,41 @@ class SudokuViewModelTest {
         assertTrue("에러 메시지가 비어있어야 함", state.errorMessage.isEmpty())
         println("최종 state: $state")
     }
+
+    @Test
+    fun testUndoRestoresPreviousState() {
+        val viewModel = SudokuViewModel()
+        // (0,2) 셀 선택 후 5 입력
+        viewModel.selectCell(0, 2)
+        viewModel.setCellValue(5)
+        val afterInput = viewModel.state.value.board[0][2]
+        assertEquals(5, afterInput)
+
+        // 실행취소
+        viewModel.onUndo()
+        val afterUndo = viewModel.state.value.board[0][2]
+        assertEquals(0, afterUndo) // 입력 전 상태로 복원
+    }
+
+    @Test
+    fun testMultipleUndo() {
+        val viewModel = SudokuViewModel()
+        // (0,2) 셀 선택 후 5 입력
+        viewModel.selectCell(0, 2)
+        viewModel.setCellValue(5)
+        // (0,3) 셀 선택 후 7 입력
+        viewModel.selectCell(0, 3)
+        viewModel.setCellValue(7)
+        assertEquals(5, viewModel.state.value.board[0][2])
+        assertEquals(7, viewModel.state.value.board[0][3])
+
+        // 실행취소 (0,3) -> 0
+        viewModel.onUndo()
+        assertEquals(0, viewModel.state.value.board[0][3])
+        assertEquals(5, viewModel.state.value.board[0][2])
+
+        // 실행취소 (0,2) -> 0
+        viewModel.onUndo()
+        assertEquals(0, viewModel.state.value.board[0][2])
+    }
 }
