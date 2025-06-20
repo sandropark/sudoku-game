@@ -143,12 +143,8 @@ tasks.register("uiTestReport") {
 }
 
 tasks.register("testAll") {
-    dependsOn("testDebugUnitTest", "connectedDebugAndroidTest")
-    doLast {
-        println("🎉 모든 테스트 완료!")
-        println("📊 단위 테스트: app/build/reports/tests/testDebugUnitTest/index.html")
-        println("📊 UI 테스트: app/build/reports/androidTests/connected/debug/index.html")
-    }
+    dependsOn("testDebugUnitTest", "testReleaseUnitTest", "connectedDebugAndroidTest")
+    description = "모든 테스트 실행 (단위 테스트 + UI 테스트)"
 }
 
 dependencies {

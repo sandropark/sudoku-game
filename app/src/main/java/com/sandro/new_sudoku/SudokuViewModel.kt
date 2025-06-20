@@ -95,6 +95,13 @@ class SudokuViewModel : ViewModel() {
         }
         
         val success = game.setCell(row, col, 0)
+        if (!success) {
+            _state.value = currentState.copy(
+                showError = true,
+                errorMessage = "이 숫자는 여기에 놓을 수 없습니다"
+            )
+            return
+        }
         _state.value = currentState.copy(
             board = game.getBoard(),
             showError = false,
