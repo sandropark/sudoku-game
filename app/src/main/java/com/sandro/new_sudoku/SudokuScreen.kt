@@ -55,6 +55,8 @@ fun SudokuScreen(
                 selectedRow = state.selectedRow,
                 selectedCol = state.selectedCol,
                 invalidCells = state.invalidCells,
+                notes = state.notes,
+                isNoteMode = state.isNoteMode,
                 onCellClick = { row, col ->
                     viewModel.selectCell(row, col)
                 },
@@ -67,15 +69,19 @@ fun SudokuScreen(
         Spacer(Modifier.height(8.dp))
         ActionBar(viewModel)
         Spacer(Modifier.height(8.dp))
-        NumberPad(
-            onNumberClick = { number ->
-                viewModel.setCellValue(number)
+            NumberPad(
+            isNoteMode = state.isNoteMode,
+                onNumberClick = { number ->
+                    viewModel.setCellValue(number)
+                },
+            onNoteNumberClick = { number ->
+                viewModel.addNoteNumber(number)
             },
-            onClearClick = {
-                viewModel.clearCell()
-            },
-            modifier = Modifier.testTag("number_pad")
-        )
+                onClearClick = {
+                    viewModel.clearCell()
+                },
+                modifier = Modifier.testTag("number_pad")
+            )
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -126,15 +132,20 @@ fun StatusBar() {
 
 @Composable
 fun ActionBar(viewModel: SudokuViewModel) {
+    val state by viewModel.state.collectAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
+            ) {
         ActionButton("실행취소", testTag = "action_btn_실행취소", onClick = { viewModel.onUndo() })
         ActionButton("지우기", testTag = "action_btn_지우기", onClick = { viewModel.clearCell() })
-        ActionButton("노트")
+        ActionButton(
+            text = if (state.isNoteMode) "노트(ON)" else "노트",
+            testTag = "action_btn_노트",
+            onClick = { viewModel.toggleNoteMode() }
+        )
         ActionButton("힌트", badgeCount = 1)
         ActionButton("새 게임", testTag = "action_btn_새게임", onClick = { viewModel.newGame() })
         ActionButton("해답 보기", testTag = "action_btn_해답보기", onClick = { viewModel.solveGame() })
@@ -149,11 +160,11 @@ fun ActionButton(text: String, badgeCount: Int = 0, testTag: String? = null, onC
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
-        ) {
+                ) {
             // 실제 아이콘은 프로젝트에 맞게 교체
             Text("⬜", fontSize = 20.sp)
             Text(text, style = MaterialTheme.typography.bodySmall)
-        }
+                }
         if (badgeCount > 0) {
             Box(
                 Modifier

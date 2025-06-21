@@ -23,7 +23,9 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun NumberPad(
+    isNoteMode: Boolean,
     onNumberClick: (Int) -> Unit,
+    onNoteNumberClick: (Int) -> Unit,
     onClearClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -41,7 +43,9 @@ fun NumberPad(
             for (number in 1..9) {
                 NumberButton(
                     number = number,
-                    onClick = { onNumberClick(number) },
+                    onClick = {
+                        if (isNoteMode) onNoteNumberClick(number) else onNumberClick(number)
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

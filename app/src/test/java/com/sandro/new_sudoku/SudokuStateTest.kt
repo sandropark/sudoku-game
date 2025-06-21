@@ -1,7 +1,11 @@
 package com.sandro.new_sudoku
 
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 
 class SudokuStateTest {
 
@@ -116,9 +120,10 @@ class SudokuStateTest {
     fun `상태 비교가 올바르게 작동하는지 테스트`() {
         val board = Array(9) { IntArray(9) { 0 } }
         val isInitialCells = Array(9) { BooleanArray(9) { false } }
-        val state1 = SudokuState(board = board, isInitialCells = isInitialCells, selectedRow = 1, selectedCol = 2)
-        val state2 = SudokuState(board = board, isInitialCells = isInitialCells, selectedRow = 1, selectedCol = 2)
-        val state3 = SudokuState(board = board, isInitialCells = isInitialCells, selectedRow = 2, selectedCol = 1)
+        val notes = Array(9) { Array(9) { emptySet<Int>() } }
+        val state1 = SudokuState(board = board, isInitialCells = isInitialCells, notes = notes, selectedRow = 1, selectedCol = 2)
+        val state2 = SudokuState(board = board, isInitialCells = isInitialCells, notes = notes, selectedRow = 1, selectedCol = 2)
+        val state3 = SudokuState(board = board, isInitialCells = isInitialCells, notes = notes, selectedRow = 2, selectedCol = 1)
         
         // 동일한 상태
         assertEquals(state1, state2)
@@ -151,8 +156,9 @@ class SudokuStateTest {
     fun `해시코드가 일관되게 생성되는지 테스트`() {
         val board = Array(9) { IntArray(9) { 0 } }
         val isInitialCells = Array(9) { BooleanArray(9) { false } }
-        val state1 = SudokuState(board = board, isInitialCells = isInitialCells, selectedRow = 1, selectedCol = 2)
-        val state2 = SudokuState(board = board, isInitialCells = isInitialCells, selectedRow = 1, selectedCol = 2)
+        val notes = Array(9) { Array(9) { emptySet<Int>() } }
+        val state1 = SudokuState(board = board, isInitialCells = isInitialCells, notes = notes, selectedRow = 1, selectedCol = 2)
+        val state2 = SudokuState(board = board, isInitialCells = isInitialCells, notes = notes, selectedRow = 1, selectedCol = 2)
         
         // 동일한 상태는 동일한 해시코드를 가져야 함
         assertEquals(state1.hashCode(), state2.hashCode())

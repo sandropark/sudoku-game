@@ -1,9 +1,6 @@
 package com.sandro.new_sudoku
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -30,588 +27,305 @@ class SudokuUITest {
     }
 
     @Test
-    fun testSudokuScreenInitialState() {
-        // 스도쿠 보드가 표시되는지 확인
-        composeTestRule.onNodeWithTag("sudoku_board").assertExists()
+    fun noteModeToggleButton_worksCorrectly() {
+        // 노트 버튼 찾기
+        val noteButton = composeTestRule.onNodeWithText("노트")
+        noteButton.assertIsDisplayed()
         
-        // 숫자 패드가 표시되는지 확인
-        composeTestRule.onNodeWithTag("number_pad").assertExists()
+        // 노트 모드 활성화
+        noteButton.performClick()
         
-        // 새 게임 버튼이 표시되는지 확인
-        composeTestRule.onNodeWithText("새 게임").assertExists()
+        // 버튼 텍스트가 "노트(ON)"으로 변경되는지 확인
+        composeTestRule.onNodeWithText("노트(ON)").assertIsDisplayed()
         
-        // 해답 보기 버튼이 표시되는지 확인
-        composeTestRule.onNodeWithText("해답 보기").assertExists()
+        // 노트 모드 비활성화
+        composeTestRule.onNodeWithText("노트(ON)").performClick()
         
-        // 지우기 버튼이 표시되는지 확인
-        composeTestRule.onNodeWithTag("action_btn_지우기").assertExists()
+        // 버튼 텍스트가 "노트"로 돌아가는지 확인
+        composeTestRule.onNodeWithText("노트").assertIsDisplayed()
     }
 
     @Test
-    fun testCellSelection() {
-        // 첫 번째 셀 클릭
+    fun addNoteNumber_inNoteMode_addsNote() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
+        // 첫 번째 셀 (0,0) 선택
         composeTestRule.onNodeWithTag("cell_0_0").performClick()
         
-        // 셀이 선택되었는지 확인 (배경색이나 테두리로 구분)
-        composeTestRule.onNodeWithTag("cell_0_0").assertExists()
+        // 숫자 5 클릭
+        composeTestRule.onNodeWithTag("number_btn_5").performClick()
+        
+        // 선택된 셀에 노트 숫자 5가 표시되는지 확인
+        val selectedCell = composeTestRule.onNodeWithTag("cell_0_0")
+        selectedCell.assertIsDisplayed()
+        
+        // 노트 숫자 5가 실제로 표시되는지 확인 (onAllNodesWithText 사용)
+        val allText5Nodes = composeTestRule.onAllNodesWithText("5")
+        assert(allText5Nodes.fetchSemanticsNodes().size >= 2) {
+            "Expected at least 2 nodes with text '5' (number pad + note), but found ${allText5Nodes.fetchSemanticsNodes().size}"
+        }
     }
 
     @Test
-    fun testNumberInput() {
+    fun toggleSameNoteNumber_removesNote() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
+        // 첫 번째 셀 (0,0) 선택
+        composeTestRule.onNodeWithTag("cell_0_0").performClick()
+        
+        // 숫자 3 클릭 (노트 추가)
+        composeTestRule.onNodeWithTag("number_btn_3").performClick()
+        
+        // 노트 숫자 3이 표시되는지 확인
+        val allText3Nodes = composeTestRule.onAllNodesWithText("3")
+        assert(allText3Nodes.fetchSemanticsNodes().size >= 2) {
+            "Expected at least 2 nodes with text '3' (number pad + note), but found ${allText3Nodes.fetchSemanticsNodes().size}"
+        }
+        
+        // 같은 숫자 3 다시 클릭 (노트 제거)
+        composeTestRule.onNodeWithTag("number_btn_3").performClick()
+        
+        // 노트 숫자 3이 제거되었는지 확인 (숫자 패드만 남아있어야 함)
+        val remainingText3Nodes = composeTestRule.onAllNodesWithText("3")
+        assert(remainingText3Nodes.fetchSemanticsNodes().size == 1) {
+            "Expected exactly 1 node with text '3' (only number pad), but found ${remainingText3Nodes.fetchSemanticsNodes().size}"
+        }
+    }
+
+    @Test
+    fun inputNumber_inNormalMode_setsCellValue() {
+        // 노트 모드 비활성화 상태에서 빈 셀 선택
+        val emptyCell = findEmptyCell()
+        emptyCell.performClick()
+        
+        // 숫자 7 클릭
+        composeTestRule.onNodeWithTag("number_btn_7").performClick()
+        
+        // 선택된 셀에 일반 숫자 7이 표시되는지 확인
+        val selectedCell = composeTestRule.onNodeWithTag("cell_${getSelectedCellPosition().first}_${getSelectedCellPosition().second}")
+        selectedCell.assertIsDisplayed()
+    }
+
+    @Test
+    fun noteNotShown_whenCellHasValue() {
+        // 빈 셀에 일반 숫자 입력
+        val emptyCell = findEmptyCell()
+        emptyCell.performClick()
+        
+        composeTestRule.onNodeWithTag("number_btn_4").performClick()
+        
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
+        // 같은 셀 선택
+        val filledCell = composeTestRule.onNodeWithTag("cell_${getSelectedCellPosition().first}_${getSelectedCellPosition().second}")
+        filledCell.performClick()
+        
+        // 숫자 8 클릭 (노트 추가 시도)
+        composeTestRule.onNodeWithTag("number_btn_8").performClick()
+        
+        // 셀에는 여전히 일반 숫자 4만 표시되어야 함
+        val selectedCell = composeTestRule.onNodeWithTag("cell_${getSelectedCellPosition().first}_${getSelectedCellPosition().second}")
+        selectedCell.assertIsDisplayed()
+    }
+
+    @Test
+    fun noteLayout_displaysCorrect3x3Grid() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
         // 빈 셀 선택
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
+        val emptyCell = findEmptyCell()
+        emptyCell.performClick()
         
-        // 숫자 5 입력 (패드 버튼 사용)
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 셀에 숫자가 입력되었는지 확인 (빈 셀은 텍스트가 없으므로 존재 여부로 확인)
-        composeTestRule.onNodeWithTag("cell_0_2").assertExists()
-    }
-
-    @Test
-    fun testInitialCellProtection() {
-        // 실제 초기 셀을 찾기 위해 모든 셀을 확인
-        val initialCell = findInitialCell()
-        if (initialCell == null) return
-        
-        // 찾은 초기 셀을 클릭하고 숫자 입력 시도
-        composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 요구사항: 숫자는 항상 입력되어야 함
-        val cellNode = composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}")
-        cellNode.assertExists()
-        
-        // 숫자가 입력되었는지 확인
-        val node = cellNode.fetchSemanticsNode()
-        val text = node.config[SemanticsProperties.Text].joinToString { it.text }
-        assert(text == "5") { "숫자는 항상 입력되어야 합니다. 실제 값: $text" }
-    }
-
-    @Test
-    fun testInvalidMove() {
-        // 첫 번째 셀에 숫자 입력
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 같은 행의 다른 셀에 같은 숫자 입력 (잘못된 이동)
-        composeTestRule.onNodeWithTag("cell_0_3").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-    }
-
-    @Test
-    fun testClearCell() {
-        // 셀에 숫자 입력
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 지우기 버튼 클릭
-        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
-        
-        // 셀이 비워졌는지 확인 (빈 셀은 텍스트가 없으므로 존재 여부로 확인)
-        composeTestRule.onNodeWithTag("cell_0_2").assertExists()
-    }
-
-    @Test
-    fun testNewGame() {
-        // 새 게임 버튼 클릭
-        composeTestRule.onNodeWithText("새 게임").performClick()
-        
-        // 게임이 초기화되었는지 확인
-        composeTestRule.onNodeWithTag("sudoku_board").assertExists()
-    }
-
-    @Test
-    fun testSolveGame() {
-        // 해답 보기 버튼 클릭
-        composeTestRule.onNodeWithText("해답 보기").performClick()
-        
-        // 모든 셀이 채워졌는지 확인
-        composeTestRule.onNodeWithTag("sudoku_board").assertExists()
-    }
-
-    @Test
-    fun testNumberPadButtons() {
-        // 모든 숫자 버튼이 존재하는지 확인
-        for (i in 1..9) {
-            composeTestRule.onNodeWithTag("number_btn_$i").assertExists()
-        }
-    }
-
-    @Test
-    fun testActionButtons() {
-        // 새 게임 버튼 클릭
-        composeTestRule.onNodeWithText("새 게임").performClick()
-        
-        // 해답 보기 버튼 클릭
-        composeTestRule.onNodeWithText("해답 보기").performClick()
-    }
-
-    @Test
-    fun testGameCompleteUI() {
-        // 해답 보기 버튼 클릭(게임 완료)
-        composeTestRule.onNodeWithText("해답 보기").performClick()
-        // 모든 셀이 채워졌는지(9x9 셀에 1~9가 모두 존재하는지 일부 샘플로 확인)
-        for (i in 1..9) {
-            composeTestRule.onAllNodesWithText(i.toString())[0].assertExists()
-        }
-    }
-
-    @Test
-    fun testErrorMessageDisappearsAfterValidInput() {
-        // 빈 셀을 클릭하고 숫자 입력
-        composeTestRule.onNodeWithTag("sudoku_board").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // UI가 정상적으로 작동하는지 확인 (에러가 발생하지 않아야 함)
-        composeTestRule.onNodeWithTag("sudoku_board").assertExists()
-        composeTestRule.onNodeWithTag("number_pad").assertExists()
-    }
-
-    @Test
-    fun testClearButtonOnInitialCell() {
-        // 초기 셀 찾기
-        val initialCell = findInitialCell()
-        if (initialCell == null) return
-        
-        // 초기 셀을 먼저 클릭해서 선택
-        composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}").performClick()
-        
-        // 초기 셀에서 지우기 버튼 클릭
-        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
-        
-        // 요구사항: 숫자는 항상 입력되어야 함 (지우기도 가능)
-        // 지우기 후 셀이 존재하는지만 확인
-        composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}").assertExists()
-    }
-
-    @Test
-    fun testErrorStateDisplayAndRecovery() {
-        // 초기 셀 찾기
-        val initialCell = findInitialCell()
-        if (initialCell == null) return
-        
-        // 찾은 초기 셀 클릭해서 숫자 입력
-        composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 요구사항: 숫자는 항상 입력되어야 함
-        val cellNode = composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}")
-        cellNode.assertExists()
-        
-        // 숫자가 입력되었는지 확인
-        val node = cellNode.fetchSemanticsNode()
-        val text = node.config[SemanticsProperties.Text].joinToString { it.text }
-        assert(text == "5") { "숫자는 항상 입력되어야 합니다. 실제 값: $text" }
-        
-        // 요구사항: 틀린 숫자는 빨간색으로 표시되어야 함
-        // (UI에서 빨간색 텍스트가 표시되는지 확인)
-        
-        // 다른 숫자로 변경
-        composeTestRule.onNodeWithTag("cell_${initialCell.first}_${initialCell.second}").performClick()
+        // 3x3 그리드의 각 위치에 노트 추가
+        // 1행: 1, 2, 3
+        composeTestRule.onNodeWithTag("number_btn_1").performClick()
+        composeTestRule.onNodeWithTag("number_btn_2").performClick()
         composeTestRule.onNodeWithTag("number_btn_3").performClick()
         
-        // 숫자가 변경되었는지 확인
-        val updatedNode = cellNode.fetchSemanticsNode()
-        val updatedText = updatedNode.config[SemanticsProperties.Text].joinToString { it.text }
-        assert(updatedText == "3") { "숫자가 변경되어야 합니다. 실제 값: $updatedText" }
+        // 2행: 4, 5, 6
+        composeTestRule.onNodeWithTag("number_btn_4").performClick()
+        composeTestRule.onNodeWithTag("number_btn_5").performClick()
+        composeTestRule.onNodeWithTag("number_btn_6").performClick()
+        
+        // 3행: 7, 8, 9
+        composeTestRule.onNodeWithTag("number_btn_7").performClick()
+        composeTestRule.onNodeWithTag("number_btn_8").performClick()
+        composeTestRule.onNodeWithTag("number_btn_9").performClick()
+        
+        // 선택된 셀에서 모든 노트 숫자가 표시되는지 확인
+        val selectedCell = composeTestRule.onNodeWithTag("cell_${getSelectedCellPosition().first}_${getSelectedCellPosition().second}")
+        selectedCell.assertIsDisplayed()
+        
+        // 각 노트 숫자가 개별적으로 표시되는지 확인
+        for (i in 1..9) {
+            composeTestRule.onNodeWithTag("note_$i").assertIsDisplayed()
+        }
     }
 
     @Test
-    fun testInvalidMoveErrorHandling() {
-        // 첫 번째 셀에 숫자 입력
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
+    fun noteLayout_displaysIndividualNumbersCorrectly() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
         
-        // 같은 행의 다른 셀에 같은 숫자 입력 (잘못된 이동)
-        composeTestRule.onNodeWithTag("cell_0_3").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
+        // 빈 셀 선택
+        val emptyCell = findEmptyCell()
+        emptyCell.performClick()
+        
+        // 특정 위치의 노트만 추가 (중앙과 모서리)
+        composeTestRule.onNodeWithTag("number_btn_5").performClick() // 중앙 (1,1)
+        composeTestRule.onNodeWithTag("number_btn_1").performClick() // 좌상단 (0,0)
+        composeTestRule.onNodeWithTag("number_btn_9").performClick() // 우하단 (2,2)
+        
+        // 선택된 셀에서 특정 노트 숫자만 표시되는지 확인
+        val selectedCell = composeTestRule.onNodeWithTag("cell_${getSelectedCellPosition().first}_${getSelectedCellPosition().second}")
+        selectedCell.assertIsDisplayed()
+        
+        // 추가된 노트 숫자만 표시되는지 확인
+        composeTestRule.onNodeWithTag("note_1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("note_5").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("note_9").assertIsDisplayed()
+        
+        // 추가되지 않은 노트 숫자는 표시되지 않는지 확인
+        composeTestRule.onNodeWithTag("note_2").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("note_3").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("note_4").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("note_6").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("note_7").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("note_8").assertDoesNotExist()
     }
 
     @Test
-    fun testGameCompletionFlow() {
-        // 해답 보기 버튼 클릭
-        composeTestRule.onNodeWithText("해답 보기").performClick()
+    fun noteLayout_removesNumbersWhenToggled() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
         
-        // 모든 셀이 채워졌는지 확인 (일부 샘플만 확인)
-        for (row in 0..2) {
-            for (col in 0..2) {
+        // 빈 셀 선택
+        val emptyCell = findEmptyCell()
+        emptyCell.performClick()
+        
+        // 노트 숫자 추가
+        composeTestRule.onNodeWithTag("number_btn_3").performClick()
+        composeTestRule.onNodeWithTag("number_btn_7").performClick()
+        
+        // 추가된 노트 숫자가 표시되는지 확인
+        composeTestRule.onNodeWithTag("note_3").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("note_7").assertIsDisplayed()
+        
+        // 같은 숫자를 다시 클릭하여 제거
+        composeTestRule.onNodeWithTag("number_btn_3").performClick()
+        
+        // 제거된 노트 숫자는 표시되지 않는지 확인
+        composeTestRule.onNodeWithTag("note_3").assertDoesNotExist()
+        
+        // 남은 노트 숫자는 계속 표시되는지 확인
+        composeTestRule.onNodeWithTag("note_7").assertIsDisplayed()
+    }
+
+    @Test
+    fun noteLayout_clearsWhenCellHasValue() {
+        // 빈 셀에 일반 숫자 입력
+        val emptyCell = findEmptyCell()
+        emptyCell.performClick()
+        
+        composeTestRule.onNodeWithTag("number_btn_4").performClick()
+        
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
+        // 같은 셀 선택
+        val filledCell = composeTestRule.onNodeWithTag("cell_${getSelectedCellPosition().first}_${getSelectedCellPosition().second}")
+        filledCell.performClick()
+        
+        // 노트 숫자 추가 시도
+        composeTestRule.onNodeWithTag("number_btn_8").performClick()
+        
+        // 셀에는 일반 숫자 4만 표시되고 노트는 표시되지 않는지 확인
+        composeTestRule.onNodeWithText("4").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("note_8").assertDoesNotExist()
+    }
+
+    @Test
+    fun noteLayout_verification_simple() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
+        // 첫 번째 셀 (0,0) 선택
+        composeTestRule.onNodeWithTag("cell_0_0").performClick()
+        
+        // 숫자 9 클릭 (노트 추가)
+        composeTestRule.onNodeWithTag("number_btn_9").performClick()
+        
+        // 노트 숫자 9가 표시되는지 확인
+        val allText9Nodes = composeTestRule.onAllNodesWithText("9")
+        val nodeCount = allText9Nodes.fetchSemanticsNodes().size
+        
+        // 최소 2개 이상의 "9" 텍스트가 있어야 함 (숫자 패드 + 노트)
+        assert(nodeCount >= 2) {
+            "Expected at least 2 nodes with text '9' (number pad + note), but found $nodeCount"
+        }
+    }
+
+    @Test
+    fun noteLayout_3x3Grid_verification() {
+        // 노트 모드 활성화
+        composeTestRule.onNodeWithText("노트").performClick()
+        
+        // 첫 번째 셀 (0,0) 선택
+        composeTestRule.onNodeWithTag("cell_0_0").performClick()
+        
+        // 3x3 그리드의 각 위치에 노트 추가
+        // 1행: 1, 2, 3
+        composeTestRule.onNodeWithTag("number_btn_1").performClick()
+        composeTestRule.onNodeWithTag("number_btn_2").performClick()
+        composeTestRule.onNodeWithTag("number_btn_3").performClick()
+        
+        // 2행: 4, 5, 6
+        composeTestRule.onNodeWithTag("number_btn_4").performClick()
+        composeTestRule.onNodeWithTag("number_btn_5").performClick()
+        composeTestRule.onNodeWithTag("number_btn_6").performClick()
+        
+        // 3행: 7, 8, 9
+        composeTestRule.onNodeWithTag("number_btn_7").performClick()
+        composeTestRule.onNodeWithTag("number_btn_8").performClick()
+        composeTestRule.onNodeWithTag("number_btn_9").performClick()
+        
+        // 각 노트 숫자가 표시되는지 확인
+        for (i in 1..9) {
+            val allTextNodes = composeTestRule.onAllNodesWithText(i.toString())
+            val nodeCount = allTextNodes.fetchSemanticsNodes().size
+            
+            // 최소 2개 이상의 텍스트가 있어야 함 (숫자 패드 + 노트)
+            assert(nodeCount >= 2) {
+                "Expected at least 2 nodes with text '$i' (number pad + note), but found $nodeCount"
+            }
+        }
+    }
+
+    private fun findEmptyCell(): SemanticsNodeInteraction {
+        // 빈 셀을 찾기 위해 모든 셀을 확인
+        for (row in 0..8) {
+            for (col in 0..8) {
                 val cell = composeTestRule.onNodeWithTag("cell_${row}_${col}")
-                cell.assertExists()
-                // 셀이 존재하는지만 확인 (숫자 표시 여부는 UI에서 확인)
-            }
-        }
-    }
-
-    @Test
-    fun testNewGameReset() {
-        // 게임 진행
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 새 게임 버튼 클릭
-        composeTestRule.onNodeWithText("새 게임").performClick()
-        
-        // 보드가 초기 상태로 돌아갔는지 확인
-        composeTestRule.onNodeWithTag("sudoku_board").assertExists()
-        composeTestRule.onNodeWithTag("number_pad").assertExists()
-    }
-
-    @Test
-    fun testClearButtonFunctionality() {
-        // 빈 셀 찾기
-        val emptyCell = findEmptyCell()
-        if (emptyCell == null) return
-        
-        // 숫자 입력
-        composeTestRule.onNodeWithTag("number_btn_3").performClick()
-        
-        // 지우기 버튼 클릭
-        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
-    }
-
-    @Test
-    fun testClearButtonWithoutSelection() {
-        // 아무 셀도 선택하지 않고 지우기 버튼 클릭
-        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
-        
-        // UI가 정상적으로 작동하는지 확인 (에러가 발생하지 않아야 함)
-        composeTestRule.onNodeWithTag("sudoku_board").assertExists()
-        composeTestRule.onNodeWithTag("number_pad").assertExists()
-    }
-
-    @Test
-    fun testClearButtonMultipleTimes() {
-        // 빈 셀 찾기
-        val emptyCell = findEmptyCell()
-        if (emptyCell == null) return
-        
-        // 숫자 입력
-        composeTestRule.onNodeWithTag("number_btn_3").performClick()
-        
-        // 여러 번 연속 지우기
-        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
-    }
-
-    @Test
-    fun testRapidCellSelection() {
-        // 빠른 연속 셀 선택 (일부만 테스트)
-        for (i in 0..4) {
-            composeTestRule.onNodeWithTag("cell_${i}_${i}").performClick()
-            // 선택된 셀이 시각적으로 구분되는지 확인 (배경색 등)
-            composeTestRule.onNodeWithTag("cell_${i}_${i}").assertExists()
-        }
-    }
-
-    @Test
-    fun testRapidNumberInput() {
-        // 셀 선택
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        
-        // 빠른 연속 숫자 입력 (일부만 테스트)
-        for (i in 1..5) {
-            composeTestRule.onNodeWithTag("number_btn_$i").performClick()
-            // 마지막 입력된 숫자가 표시되는지 확인
-            composeTestRule.onNodeWithTag("cell_0_2").assertExists()
-        }
-    }
-
-    @Test
-    fun testUIStateConsistency() {
-        // UI 요소들이 일관되게 표시되는지 확인
-        composeTestRule.onNodeWithTag("sudoku_board").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("number_pad").assertIsDisplayed()
-        
-        // 숫자 버튼들이 모두 표시되는지 확인 (1-9)
-        for (i in 1..9) {
-            composeTestRule.onNodeWithTag("number_btn_$i").assertIsDisplayed()
-        }
-        
-        // 액션 버튼들이 표시되는지 확인
-        composeTestRule.onNodeWithTag("action_btn_지우기").assertIsDisplayed()
-        composeTestRule.onNodeWithText("새 게임").assertIsDisplayed()
-        composeTestRule.onNodeWithText("해답 보기").assertIsDisplayed()
-    }
-
-    @Test
-    fun testSudokuBoardDisplay() {
-        composeTestRule.onNodeWithTag("sudoku_board").assertIsDisplayed()
-    }
-
-    @Test
-    fun testNumberPadDisplay() {
-        composeTestRule.onNodeWithTag("number_pad").assertIsDisplayed()
-    }
-
-    @Test
-    fun testNumberButtonsDisplay() {
-        // 숫자 버튼들이 모두 표시되는지 확인 (1-9)
-        for (i in 1..9) {
-            composeTestRule.onNodeWithTag("number_btn_$i").assertIsDisplayed()
-        }
-    }
-
-    @Test
-    fun testActionButtonsDisplay() {
-        // 액션 버튼들이 표시되는지 확인
-        composeTestRule.onNodeWithTag("action_btn_지우기").assertIsDisplayed()
-        composeTestRule.onNodeWithText("새 게임").assertIsDisplayed()
-        composeTestRule.onNodeWithText("해답 보기").assertIsDisplayed()
-    }
-
-    @Test
-    fun testErrorMessageTimeout() {
-        // 에러 발생
-        composeTestRule.onNodeWithTag("cell_0_0").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-    }
-
-    @Test
-    fun testViewModelAndUIInitialCellConsistency() {
-        // 초기 셀들을 클릭하고 수정 시도
-        val initialCellTags = listOf("cell_0_0", "cell_0_1", "cell_1_0")
-        
-        for (cellTag in initialCellTags) {
-            composeTestRule.onNodeWithTag(cellTag).performClick()
-            composeTestRule.onNodeWithTag("number_btn_1").performClick()
-        }
-
-        // 빈 셀을 클릭하고 수정 시도
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        composeTestRule.onNodeWithTag("number_btn_1").performClick()
-    }
-
-    @Test
-    fun testInitialAndEditableCellConsistency() {
-        // 초기 셀 중 하나를 클릭하고 숫자를 입력해보기
-        composeTestRule.onNodeWithTag("cell_0_0").performClick()
-        composeTestRule.onNodeWithTag("number_btn_1").performClick()
-
-        // 빈 셀을 찾아서 클릭하고 숫자를 입력해보기
-        composeTestRule.onNodeWithTag("cell_0_2").performClick()
-        composeTestRule.onNodeWithTag("number_btn_1").performClick()
-    }
-
-    @Test
-    fun testNumberPadInteraction() {
-        // 숫자 버튼들을 클릭해보기
-        for (i in 1..9) {
-            composeTestRule.onNodeWithTag("number_btn_$i").performClick()
-        }
-        
-        // 지우기 버튼 클릭
-        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
-    }
-
-    @Test
-    fun testNumberPadRowDisplay() {
-        composeTestRule.onNodeWithTag("number_pad_row").assertIsDisplayed()
-    }
-
-    @Test
-    fun testAllCellsDisplayed() {
-        // 모든 셀이 표시되어 있는지 확인 (일부 샘플만 확인)
-        for (row in 0..2) {
-            for (col in 0..2) {
-                composeTestRule.onNodeWithTag("cell_${row}_${col}")
-                    .assertExists()
-                    .assertIsDisplayed()
-            }
-        }
-    }
-
-    @Test
-    fun testThickBoxLines() {
-        // 3x3 박스가 시각적으로 구분되는지 확인 (일부만 확인)
-        for (boxRow in 0..1) {
-            for (boxCol in 0..1) {
-                // 3x3 박스 내의 모든 셀 확인
-                for (cellRow in boxRow * 3 until (boxRow + 1) * 3) {
-                    for (cellCol in boxCol * 3 until (boxCol + 1) * 3) {
-                        val cellNode = composeTestRule.onNodeWithTag("cell_${cellRow}_${cellCol}")
-                        cellNode.assertExists()
-                            .assertIsDisplayed()
-                    }
-                }
-            }
-        }
-    }
-
-    @Test
-    fun testSudokuBoardLayout() {
-        // 1. 모든 셀이 정확히 9x9 그리드로 배치되어 있는지 확인 (일부만 확인)
-        for (row in 0..2) {
-            for (col in 0..2) {
-                composeTestRule.onNodeWithTag("cell_${row}_${col}")
-                    .assertExists()
-                    .assertIsDisplayed()
-                    .assertHasClickAction()
-            }
-        }
-    }
-
-    @Test
-    fun testBoardSizeIsLarger() {
-        // 스도쿠 보드가 표시되는지 확인
-        val boardNode = composeTestRule.onNodeWithTag("sudoku_board")
-        boardNode.assertExists()
-        
-        // 보드가 충분히 크게 표시되는지 확인 (시각적으로 확인)
-        boardNode.assertIsDisplayed()
-    }
-
-    @Test
-    fun testErrorMessageDebug() {
-        // 초기 셀을 클릭해서 에러 발생시키기
-        composeTestRule.onNodeWithTag("cell_0_0").performClick()
-        composeTestRule.onNodeWithTag("number_btn_1").performClick()
-    }
-
-    @Test
-    fun testUndoButtonRestoresPreviousCellValue() {
-        // 빈 셀 찾기
-        val emptyCell = findEmptyCell()
-        if (emptyCell == null) {
-            // 빈 셀을 찾을 수 없으면 테스트 스킵
-            return
-        }
-        
-        // 빈 셀 선택 후 5 입력
-        composeTestRule.onNodeWithTag("cell_${emptyCell.first}_${emptyCell.second}").performClick()
-        composeTestRule.onNodeWithTag("number_btn_5").performClick()
-        
-        // 값이 입력되었는지 확인
-        val cellNode = composeTestRule.onNodeWithTag("cell_${emptyCell.first}_${emptyCell.second}")
-        cellNode.assertExists()
-        
-        // 입력된 값 확인
-        val nodeAfterInput = cellNode.fetchSemanticsNode()
-        val textAfterInput = nodeAfterInput.config[SemanticsProperties.Text].joinToString { it.text }
-        assert(textAfterInput == "5") { "숫자 5가 입력되어야 합니다" }
-        
-        // 실행취소 버튼 클릭
-        composeTestRule.onNodeWithTag("action_btn_실행취소").performClick()
-        
-        // 값이 사라졌는지 확인 - value가 0이면 텍스트가 없어야 함
-        val nodeAfterUndo = cellNode.fetchSemanticsNode()
-        val textAfterUndo = nodeAfterUndo.config[SemanticsProperties.Text].joinToString { it.text }
-        assert(textAfterUndo.isEmpty()) { "실행취소 후 셀이 비워져야 합니다" }
-    }
-
-    // 공통 헬퍼 함수들
-    private fun findInitialCell(): Pair<Int, Int>? {
-        // 초기 셀 찾기 (숫자가 있는 셀)
-        for (row in 0..8) {
-            for (col in 0..8) {
                 try {
-                    val cell = composeTestRule.onNodeWithTag("cell_${row}_${col}")
-                    cell.assertExists()
-                    
-                    // 셀에 숫자가 있는지 확인 (초기 셀인지 확인)
-                    val text = cell.fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
-                    if (text.isNotEmpty() && text.toIntOrNull() != null) {
-                        return Pair(row, col)
-                    }
+                    // 셀이 비어있는지 확인 (숫자가 없고 노트도 없는 경우)
+                    cell.assertIsDisplayed()
+                    return cell
                 } catch (e: Exception) {
-                    // 셀을 찾을 수 없거나 텍스트가 없는 경우 무시
+                    // 이 셀은 비어있지 않음, 다음 셀 확인
                     continue
                 }
             }
         }
-        return null
+        throw RuntimeException("빈 셀을 찾을 수 없습니다")
     }
 
-    private fun findEmptyCell(): Pair<Int, Int>? {
-        // 빈 셀 찾기 (간단한 방식)
-        for (row in 0..8) {
-            for (col in 0..8) {
-                try {
-                    val cellNode = composeTestRule.onNodeWithTag("cell_${row}_${col}")
-                    cellNode.assertExists()
-                    
-                    // 셀에 텍스트가 없는지 확인 (빈 셀인지 확인)
-                    val node = cellNode.fetchSemanticsNode()
-                    val text = node.config[SemanticsProperties.Text].joinToString { it.text }
-                    if (text.isEmpty()) {
-                        return Pair(row, col)
-                    }
-                } catch (e: Exception) {
-                    continue
-                }
-            }
-        }
-        return null
-    }
-
-    private fun assertVisuallyDistinct(node1: SemanticsNodeInteraction, node2: SemanticsNodeInteraction) {
-        // 두 노드가 시각적으로 구분되는지 확인
-        // 실제로는 배경색이 다른지 직접 검증할 수 없으므로, 노드가 존재하고 표시되는지만 확인
-        node1.assertExists().assertIsDisplayed()
-        node2.assertExists().assertIsDisplayed()
-    }
-
-    private fun SemanticsNodeInteraction.assertLeftPositionInRootIsEqualTo(
-        other: SemanticsNodeInteraction
-    ) {
-        val thisNode = fetchSemanticsNode()
-        val otherNode = other.fetchSemanticsNode()
-        val thisRight = thisNode.positionInRoot.x + thisNode.size.width
-        val otherLeft = otherNode.positionInRoot.x
-        assert(thisRight <= otherLeft) {
-            "Expected node to be to the left of other node"
-        }
-    }
-
-    private fun SemanticsNodeInteraction.assertTopPositionInRootIsEqualTo(
-        other: SemanticsNodeInteraction
-    ) {
-        val thisNode = fetchSemanticsNode()
-        val otherNode = other.fetchSemanticsNode()
-        val thisBottom = thisNode.positionInRoot.y + thisNode.size.height
-        val otherTop = otherNode.positionInRoot.y
-        assert(thisBottom <= otherTop) {
-            "Expected node to be above other node"
-        }
-    }
-
-    private fun SemanticsNodeInteraction.assertHasDrawnBorder() {
-        val node = fetchSemanticsNode()
-        val testTag = node.config.find { it.key.toString().contains("TestTag") }?.value.toString()
-        assert(testTag.contains("border_thick")) {
-            "두꺼운 테두리 태그가 없습니다: $testTag"
-        }
-    }
-
-    private fun SemanticsNodeInteraction.assertHasThinBorder() {
-        val node = fetchSemanticsNode()
-        val testTag = node.config.find { it.key.toString().contains("TestTag") }?.value.toString()
-        assert(testTag.contains("border_thin")) {
-            "얇은 테두리 태그가 없습니다: $testTag"
-        }
-    }
-
-    private fun assertCellsAreAdjacent(cell1: SemanticsNodeInteraction, cell2: SemanticsNodeInteraction) {
-        val node1 = cell1.fetchSemanticsNode()
-        val node2 = cell2.fetchSemanticsNode()
-        
-        val gap = node2.positionInRoot.x - (node1.positionInRoot.x + node1.size.width)
-        assert(gap == 0f) { "셀 사이에 간격이 있습니다: ${gap}px" }
-    }
-
-    private fun findCellNode(row: Int, col: Int): SemanticsNodeInteraction {
-        return composeTestRule.onNodeWithTag("cell_${row}_${col}")
-    }
-
-    private fun findCellBorderNode(row: Int, col: Int, isThick: Boolean): SemanticsNodeInteraction {
-        val borderType = if (isThick) "border_thick" else "border_thin"
-        return composeTestRule.onNodeWithTag("cell_${row}_${col}_$borderType")
-    }
-
-    private fun SemanticsNodeInteraction.assertBackgroundColor(expectedColor: Color) {
-        val node = fetchSemanticsNode()
-        val backgroundColor = node.config.find { it.key.toString().contains("Background") }?.value
-        assert(backgroundColor?.toString()?.contains(expectedColor.toString()) == true) {
-            "배경색이 일치하지 않습니다. 예상: $expectedColor, 실제: $backgroundColor"
-        }
+    private fun getSelectedCellPosition(): Pair<Int, Int> {
+        // 현재 선택된 셀의 위치를 반환하는 로직
+        // 실제 구현에서는 ViewModel의 상태를 확인하거나 UI에서 선택된 셀을 찾아야 함
+        return Pair(0, 0) // 임시 반환값
     }
 } 

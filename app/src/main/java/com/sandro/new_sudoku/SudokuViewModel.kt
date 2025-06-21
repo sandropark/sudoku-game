@@ -14,7 +14,9 @@ data class SudokuState(
     val isGameComplete: Boolean = false,
     val showError: Boolean = false,
     val errorMessage: String = "",
-    val invalidCells: Set<Pair<Int, Int>> = emptySet()
+    val invalidCells: Set<Pair<Int, Int>> = emptySet(),
+    val isNoteMode: Boolean = false,
+    val notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } }
 )
 
 class SudokuViewModel : ViewModel() {
@@ -26,7 +28,10 @@ class SudokuViewModel : ViewModel() {
     ))
     val state: StateFlow<SudokuState> = _state.asStateFlow()
     
-    private val undoStack = Stack<Triple<Array<IntArray>, Int, Int>>()
+    private val undoStack = Stack<Quadruple<Array<IntArray>, Array<Array<Set<Int>>>, Int, Int>>()
+    
+    // Quadruple 클래스 정의
+    data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
     
     private fun generateInitialCellsInfo(): Array<BooleanArray> {
         return Array(9) { row ->
@@ -71,7 +76,7 @@ class SudokuViewModel : ViewModel() {
         // 완전히 새로운 2차원 배열로 복사
         val src = game.getBoard()
         val currentBoard = src.map { it.copyOf() }.toTypedArray()
-        undoStack.push(Triple(currentBoard, row, col))
+        undoStack.push(Quadruple(currentBoard, currentState.notes.map { it.copyOf() }.toTypedArray(), row, col))
         
         // 숫자를 항상 입력 (요구사항: 숫자는 항상 입력되어야 함)
         val success = game.setCell(row, col, value)
@@ -79,12 +84,17 @@ class SudokuViewModel : ViewModel() {
             return
         }
         
+        // 셀에 숫자를 입력하면 해당 셀의 후보 숫자도 지우기
+        val newNotes = currentState.notes.map { it.copyOf() }.toTypedArray()
+        newNotes[row][col] = emptySet()
+        
         _state.value = currentState.copy(
             board = game.getBoard().map { it.copyOf() }.toTypedArray(),
             showError = false,
             errorMessage = "",
             invalidCells = calculateInvalidCells(),
-            isGameComplete = game.isGameComplete()
+            isGameComplete = game.isGameComplete(),
+            notes = newNotes
         )
     }
     
@@ -100,7 +110,7 @@ class SudokuViewModel : ViewModel() {
         // 완전히 새로운 2차원 배열로 복사
         val src = game.getBoard()
         val currentBoard = src.map { it.copyOf() }.toTypedArray()
-        undoStack.push(Triple(currentBoard, row, col))
+        undoStack.push(Quadruple(currentBoard, currentState.notes.map { it.copyOf() }.toTypedArray(), row, col))
         
         // 숫자를 항상 지우기 (요구사항: 숫자는 항상 입력되어야 함)
         val success = game.setCell(row, col, 0)
@@ -108,11 +118,16 @@ class SudokuViewModel : ViewModel() {
             return
         }
         
+        // 셀을 지우면 해당 셀의 후보 숫자도 지우기
+        val newNotes = currentState.notes.map { it.copyOf() }.toTypedArray()
+        newNotes[row][col] = emptySet()
+        
         _state.value = currentState.copy(
             board = game.getBoard().map { it.copyOf() }.toTypedArray(),
             showError = false,
             errorMessage = "",
-            invalidCells = calculateInvalidCells()
+            invalidCells = calculateInvalidCells(),
+            notes = newNotes
         )
     }
     
@@ -164,7 +179,7 @@ class SudokuViewModel : ViewModel() {
     
     fun onUndo() {
         if (undoStack.isNotEmpty()) {
-            val (prevBoard, prevRow, prevCol) = undoStack.pop()
+            val (prevBoard, prevNotes, prevRow, prevCol) = undoStack.pop()
             // 완전히 새로운 2차원 배열로 복사
             val restoreBoard = prevBoard.map { it.copyOf() }.toTypedArray()
             game.setBoard(restoreBoard)
@@ -174,8 +189,73 @@ class SudokuViewModel : ViewModel() {
                 selectedCol = prevCol,
                 showError = false,
                 errorMessage = "",
-                invalidCells = calculateInvalidCells() // undo 시에도 전체 검사
+                invalidCells = calculateInvalidCells(),
+                notes = prevNotes.map { row -> row.map { it.toSet() }.toTypedArray() }.toTypedArray()
             )
         }
+    }
+    
+    fun toggleNoteMode() {
+        _state.value = _state.value.copy(
+            isNoteMode = !_state.value.isNoteMode
+        )
+    }
+    
+    fun addNoteNumber(number: Int) {
+        val currentState = _state.value
+        val row = currentState.selectedRow
+        val col = currentState.selectedCol
+        
+        if (row == -1 || col == -1 || !currentState.isNoteMode) {
+            return
+        }
+        
+        // undo 스택에 현재 상태 저장
+        undoStack.push(Quadruple(
+            currentState.board.map { it.copyOf() }.toTypedArray(),
+            currentState.notes.map { it.copyOf() }.toTypedArray(),
+            row,
+            col
+        ))
+        
+        // 현재 셀의 후보 숫자 가져오기
+        val currentNotes = currentState.notes[row][col].toMutableSet()
+        
+        // 이미 있는 숫자면 제거, 없으면 추가 (토글 방식)
+        if (currentNotes.contains(number)) {
+            currentNotes.remove(number)
+        } else {
+            currentNotes.add(number)
+        }
+        
+        // 새로운 notes 배열 생성
+        val newNotes = currentState.notes.map { it.copyOf() }.toTypedArray()
+        newNotes[row][col] = currentNotes
+        
+        _state.value = currentState.copy(
+            notes = newNotes
+        )
+    }
+    
+    fun removeNoteNumber(number: Int) {
+        val currentState = _state.value
+        val row = currentState.selectedRow
+        val col = currentState.selectedCol
+        
+        if (row == -1 || col == -1) {
+            return
+        }
+        
+        // 현재 셀의 후보 숫자 가져오기
+        val currentNotes = currentState.notes[row][col].toMutableSet()
+        currentNotes.remove(number)
+        
+        // 새로운 notes 배열 생성
+        val newNotes = currentState.notes.map { it.copyOf() }.toTypedArray()
+        newNotes[row][col] = currentNotes
+        
+        _state.value = currentState.copy(
+            notes = newNotes
+        )
     }
 } 

@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -30,6 +32,8 @@ fun SudokuBoard(
     selectedRow: Int,
     selectedCol: Int,
     invalidCells: Set<Pair<Int, Int>>,
+    notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } },
+    isNoteMode: Boolean = false,
     onCellClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,12 +58,14 @@ fun SudokuBoard(
                         val isInvalid = invalidCells.contains(Pair(row, col))
                         val boxIndex = (row / 3) * 3 + (col / 3)  // 0부터 8까지의 3x3 박스 인덱스
                         val isEvenBox = boxIndex % 2 == 0
-                        
+                        val cellNotes = notes[row][col]
                         SudokuCell(
                             value = value,
                             isSelected = isSelected,
                             isInitial = isInitial,
                             isInvalid = isInvalid,
+                            notes = cellNotes,
+                            isNoteMode = isNoteMode,
                             onClick = { onCellClick(row, col) },
                             cellSize = cellSize,
                             isEvenBox = isEvenBox,
@@ -78,6 +84,8 @@ fun SudokuCell(
     isSelected: Boolean,
     isInitial: Boolean,
     isInvalid: Boolean,
+    notes: Set<Int> = emptySet(),
+    isNoteMode: Boolean = false,
     onClick: () -> Unit,
     cellSize: Dp,
     isEvenBox: Boolean,
@@ -118,6 +126,52 @@ fun SudokuCell(
                 fontSize = (cellSize.value * 0.4f).coerceAtLeast(12f).sp,
                 textAlign = TextAlign.Center
             )
+        } else if (notes.isNotEmpty()) {
+            // 후보 숫자 3x3 그리드로 흐리게 표시 (조밀하게 배치하고 여백 추가)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(2.dp), // 바깥 여백 추가
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .size((cellSize.value * 0.85f).dp), // 전체 크기를 85%로 줄여서 여백 확보
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    for (noteRow in 0..2) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(0.dp)
+                        ) {
+                            for (noteCol in 0..2) {
+                                val noteNum = noteRow * 3 + noteCol + 1
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (notes.contains(noteNum)) {
+                                        Text(
+                                            text = noteNum.toString(),
+                                            color = Color.Gray.copy(alpha = 0.8f),
+                                            fontSize = (cellSize.value * 0.18f).coerceAtLeast(7f).sp, // 폰트 크기를 더 작게
+                                            fontWeight = FontWeight.Medium,
+                                            textAlign = TextAlign.Center,
+                                            lineHeight = (cellSize.value * 0.18f).coerceAtLeast(7f).sp,
+                                            style = androidx.compose.ui.text.TextStyle(
+                                                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                                            ),
+                                            modifier = Modifier.testTag("note_${noteNum}")
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 } 
