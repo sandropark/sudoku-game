@@ -451,49 +451,81 @@ class SudokuIntegrationTest {
     fun `에러 상태에서 정상 입력으로 복구 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
-        // 초기 셀과 빈 셀 찾기
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
         var state = viewModel.state.first()
-        var initialRow = -1
-        var initialCol = -1
+        var emptyRow = -1
+        var emptyCol = -1
         for (row in 0..8) {
             for (col in 0..8) {
-                if (viewModel.isInitialCell(row, col) && initialRow == -1) {
-                    initialRow = row
-                    initialCol = col
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
                 }
             }
+            if (emptyRow != -1) break
         }
-        // 실제로 invalidCells에 포함되는 값을 찾을 때까지 반복
-        var foundInvalid = false
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 빈 셀에 잘못된 값 입력
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 같은 행에 이미 있는 숫자 찾기
         var invalidValue = -1
         for (value in 1..9) {
-            if (value == state.board[initialRow][initialCol]) continue
-            viewModel.selectCell(initialRow, initialCol)
-            viewModel.setCellValue(value)
-            state = viewModel.state.first()
-            if (state.invalidCells.contains(Pair(initialRow, initialCol))) {
-                foundInvalid = true
+            var foundInRow = false
+            for (col in 0..8) {
+                if (state.board[emptyRow][col] == value) {
+                    foundInRow = true
+                    break
+                }
+            }
+            if (foundInRow) {
                 invalidValue = value
                 break
             }
         }
-        assertTrue(foundInvalid)
-        // 복구: 유효한 값이 있으면 그 값, 없으면 0(지우기)로 복구
-        var foundValid = false
-        for (value in 1..9) {
-            if (value == invalidValue) continue
-            viewModel.selectCell(initialRow, initialCol)
-            viewModel.setCellValue(value)
-            state = viewModel.state.first()
-            if (!state.invalidCells.contains(Pair(initialRow, initialCol))) {
-                foundValid = true
-                break
+        
+        assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != -1)
+        
+        viewModel.setCellValue(invalidValue)
+        state = viewModel.state.first()
+        assertTrue("에러 상태가 생성되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        
+        // 유효한 값으로 복구
+        val validValue = (1..9).firstOrNull { value ->
+            if (value == invalidValue) return@firstOrNull false
+            val board = viewModel.state.value.board
+            // 행 검사
+            for (c in 0..8) {
+                if (c != emptyCol && board[emptyRow][c] == value) return@firstOrNull false
             }
+            // 열 검사
+            for (r in 0..8) {
+                if (r != emptyRow && board[r][emptyCol] == value) return@firstOrNull false
+            }
+            // 3x3 박스 검사
+            val boxRow = (emptyRow / 3) * 3
+            val boxCol = (emptyCol / 3) * 3
+            for (r in boxRow until boxRow + 3) {
+                for (c in boxCol until boxCol + 3) {
+                    if ((r != emptyRow || c != emptyCol) && board[r][c] == value) return@firstOrNull false
+                }
+            }
+            true
         }
-        if (!foundValid) {
+        
+        if (validValue != null) {
+            viewModel.setCellValue(validValue)
+            state = viewModel.state.first()
+            assertFalse("에러 상태가 해결되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        } else {
+            // 유효한 값이 없으면 지우기
             viewModel.clearCell()
+            state = viewModel.state.first()
+            assertFalse("에러 상태가 해결되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
         }
-        // 복구 시도만 정상 동작하면 통과 (invalidCells에 남아있을 수 있음)
     }
 
     @Test

@@ -315,6 +315,7 @@ class SudokuViewModelTest {
         val game = gameField.get(viewModel) as com.sandro.new_sudoku.SudokuGame
         val solutionField = game.javaClass.getDeclaredField("solution")
         solutionField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
         val solution = solutionField.get(game) as Array<IntArray>
         for (i in 0..8) {
             for (j in 0..8) {
@@ -417,47 +418,56 @@ class SudokuViewModelTest {
     fun `셀 선택 시 에러 메시지가 사라지는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
-        // 초기 상태 저장
-        val initialState = viewModel.state.first()
-        
-        // 초기 셀 찾기
-        var initialRow = -1
-        var initialCol = -1
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
+        var state = viewModel.state.first()
+        var emptyRow = -1
+        var emptyCol = -1
         for (row in 0..8) {
             for (col in 0..8) {
-                if (initialState.board[row][col] != 0) {
-                    initialRow = row
-                    initialCol = col
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
                     break
                 }
             }
-            if (initialRow != -1) break
+            if (emptyRow != -1) break
         }
         
-        // 실제로 invalidCells에 포함되는 값을 찾을 때까지 반복
-        var foundInvalid = false
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 빈 셀에 잘못된 값 입력 (에러 상태 생성)
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 같은 행에 이미 있는 숫자 찾기
         var invalidValue = -1
         for (value in 1..9) {
-            if (value == initialState.board[initialRow][initialCol]) continue
-        viewModel.selectCell(initialRow, initialCol)
-            viewModel.setCellValue(value)
-            val errorState = viewModel.state.first()
-            if (errorState.invalidCells.contains(Pair(initialRow, initialCol))) {
-                foundInvalid = true
+            var foundInRow = false
+            for (col in 0..8) {
+                if (state.board[emptyRow][col] == value) {
+                    foundInRow = true
+                    break
+                }
+            }
+            if (foundInRow) {
                 invalidValue = value
                 break
             }
         }
-        assertTrue(foundInvalid)
+        
+        assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != -1)
+        
+        viewModel.setCellValue(invalidValue)
+        val errorState = viewModel.state.first()
+        assertTrue("에러 상태가 생성되어야 함", errorState.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        
         // 다른 셀 선택 (에러 상태는 유지되어야 함)
-        val emptyCell = findEmptyCell(initialState.board) ?: throw AssertionError("빈 셀 없음")
-        val (row, col) = emptyCell
+        // 업데이트된 상태에서 빈 셀 찾기
+        val updatedState = viewModel.state.first()
+        val anotherEmptyCell = findEmptyCell(updatedState.board, viewModel) ?: throw AssertionError("빈 셀 없음")
+        val (row, col) = anotherEmptyCell
         viewModel.selectCell(row, col)
-        val state = viewModel.state.first()
-        assertTrue(state.invalidCells.contains(Pair(initialRow, initialCol)))
-        // 복구
-        recoverCell(viewModel, initialRow, initialCol, excludeValue = invalidValue)
-        // 복구 시도만 정상 동작하면 통과 (invalidCells에 남아있을 수 있음)
+        val stateAfterSelection = viewModel.state.first()
+        assertTrue("에러 상태가 유지되어야 함", stateAfterSelection.invalidCells.contains(Pair(emptyRow, emptyCol)))
     }
 
     @Test
@@ -508,107 +518,181 @@ class SudokuViewModelTest {
     fun `에러 메시지 내용 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
-        // 초기 셀 찾기
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
         var state = viewModel.state.first()
-        var initialRow = -1
-        var initialCol = -1
+        var emptyRow = -1
+        var emptyCol = -1
         for (row in 0..8) {
             for (col in 0..8) {
-                if (state.board[row][col] != 0) {
-                    initialRow = row
-                    initialCol = col
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
                     break
                 }
             }
-            if (initialRow != -1) break
+            if (emptyRow != -1) break
         }
         
-        // 실제로 invalidCells에 포함되는 값을 찾을 때까지 반복
-        var foundInvalid = false
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 빈 셀에 잘못된 값 입력
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 같은 행에 이미 있는 숫자 찾기
         var invalidValue = -1
         for (value in 1..9) {
-            if (value == state.board[initialRow][initialCol]) continue
-            viewModel.selectCell(initialRow, initialCol)
-            viewModel.setCellValue(value)
-        val errorState = viewModel.state.first()
-            if (errorState.invalidCells.contains(Pair(initialRow, initialCol))) {
-                foundInvalid = true
+            var foundInRow = false
+            for (col in 0..8) {
+                if (state.board[emptyRow][col] == value) {
+                    foundInRow = true
+                    break
+                }
+            }
+            if (foundInRow) {
                 invalidValue = value
                 break
             }
         }
-        assertTrue(foundInvalid)
-        // 복구
-        recoverCell(viewModel, initialRow, initialCol, excludeValue = invalidValue)
-        // 복구 시도만 정상 동작하면 통과 (invalidCells에 남아있을 수 있음)
+        
+        assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != -1)
+        
+        viewModel.setCellValue(invalidValue)
+        val errorState = viewModel.state.first()
+        assertTrue("에러 상태가 생성되어야 함", errorState.invalidCells.contains(Pair(emptyRow, emptyCol)))
     }
 
     @Test
     fun `에러 상태 복구 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
-        // 초기 셀 찾기
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
         var state = viewModel.state.first()
-        var initialRow = -1
-        var initialCol = -1
+        var emptyRow = -1
+        var emptyCol = -1
         for (row in 0..8) {
             for (col in 0..8) {
-                if (state.board[row][col] != 0) {
-                    initialRow = row
-                    initialCol = col
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
                     break
                 }
             }
-            if (initialRow != -1) break
+            if (emptyRow != -1) break
         }
-        // 실제로 invalidCells에 포함되는 값을 찾을 때까지 반복
-        var foundInvalid = false
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 빈 셀에 잘못된 값 입력
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 같은 행에 이미 있는 숫자 찾기
         var invalidValue = -1
         for (value in 1..9) {
-            if (value == state.board[initialRow][initialCol]) continue
-            viewModel.selectCell(initialRow, initialCol)
-            viewModel.setCellValue(value)
-            val errorState = viewModel.state.first()
-            if (errorState.invalidCells.contains(Pair(initialRow, initialCol))) {
-                foundInvalid = true
+            var foundInRow = false
+            for (col in 0..8) {
+                if (state.board[emptyRow][col] == value) {
+                    foundInRow = true
+                    break
+                }
+            }
+            if (foundInRow) {
                 invalidValue = value
                 break
             }
         }
-        assertTrue(foundInvalid)
-        // 복구
-        recoverCell(viewModel, initialRow, initialCol, excludeValue = invalidValue)
-        // 복구 시도만 정상 동작하면 통과 (invalidCells에 남아있을 수 있음)
+        
+        assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != -1)
+        
+        viewModel.setCellValue(invalidValue)
+        val errorState = viewModel.state.first()
+        assertTrue("에러 상태가 생성되어야 함", errorState.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        
+        // 유효한 값으로 복구 (업데이트된 상태에서 찾기)
+        val updatedState = viewModel.state.first()
+        val validValue = (1..9).firstOrNull { value ->
+            if (value == invalidValue) return@firstOrNull false
+            val board = updatedState.board
+            // 행 검사
+            for (c in 0..8) {
+                if (c != emptyCol && board[emptyRow][c] == value) return@firstOrNull false
+            }
+            // 열 검사
+            for (r in 0..8) {
+                if (r != emptyRow && board[r][emptyCol] == value) return@firstOrNull false
+            }
+            // 3x3 박스 검사
+            val boxRow = (emptyRow / 3) * 3
+            val boxCol = (emptyCol / 3) * 3
+            for (r in boxRow until boxRow + 3) {
+                for (c in boxCol until boxCol + 3) {
+                    if ((r != emptyRow || c != emptyCol) && board[r][c] == value) return@firstOrNull false
+                }
+            }
+            true
+        }
+        
+        if (validValue != null) {
+            viewModel.setCellValue(validValue)
+            val recoveredState = viewModel.state.first()
+            assertFalse("에러 상태가 해결되어야 함", recoveredState.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        } else {
+            // 유효한 값이 없으면 지우기
+            viewModel.clearCell()
+            val recoveredState = viewModel.state.first()
+            assertFalse("에러 상태가 해결되어야 함", recoveredState.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        }
     }
 
     @Test
     fun `다양한 에러 시나리오 테스트`() = runTest {
         val viewModel = SudokuViewModel()
+        
+        // 빈 셀들 찾기 (초기 셀이 아닌 셀들)
+        val emptyCells = mutableListOf<Pair<Int, Int>>()
         for (row in 0..8) {
             for (col in 0..8) {
-                if (viewModel.isInitialCell(row, col)) {
-                    val initialValue = viewModel.state.value.board[row][col]
-                    // 실제로 invalidCells에 포함되는 값을 찾을 때까지 반복
-                    var foundInvalid = false
-                    var invalidValue = -1
-                    for (value in 1..9) {
-                        if (value == initialValue) continue
-                        viewModel.selectCell(row, col)
-                        viewModel.setCellValue(value)
-                        advanceUntilIdle()
-                        if (viewModel.state.value.invalidCells.contains(Pair(row, col))) {
-                            foundInvalid = true
-                            invalidValue = value
-                            break
-                        }
-                    }
-                    assertTrue(foundInvalid)
-                    // 복구
-                    recoverCell(viewModel, row, col, excludeValue = invalidValue)
-                    advanceUntilIdle()
-                    // 복구 시도만 정상 동작하면 통과 (invalidCells에 남아있을 수 있음)
-                    return@runTest
+                if (!viewModel.isInitialCell(row, col) && viewModel.state.value.board[row][col] == 0) {
+                    emptyCells.add(Pair(row, col))
                 }
+            }
+        }
+        
+        assertTrue("테스트할 빈 셀이 있어야 함", emptyCells.isNotEmpty())
+        
+        // 각 빈 셀에 대해 에러 시나리오 테스트
+        for ((row, col) in emptyCells.take(3)) { // 최대 3개만 테스트
+            val state = viewModel.state.value
+            
+            // 같은 행에 이미 있는 숫자 찾기
+            var invalidValue = -1
+            for (value in 1..9) {
+                var foundInRow = false
+                for (c in 0..8) {
+                    if (state.board[row][c] == value) {
+                        foundInRow = true
+                        break
+                    }
+                }
+                if (foundInRow) {
+                    invalidValue = value
+                    break
+                }
+            }
+            
+            if (invalidValue != -1) {
+                viewModel.selectCell(row, col)
+                viewModel.setCellValue(invalidValue)
+                advanceUntilIdle()
+                
+                val errorState = viewModel.state.value
+                assertTrue("에러 상태가 생성되어야 함", errorState.invalidCells.contains(Pair(row, col)))
+                
+                // 복구
+                viewModel.clearCell()
+                advanceUntilIdle()
+                
+                val recoveredState = viewModel.state.value
+                assertFalse("에러 상태가 해결되어야 함", recoveredState.invalidCells.contains(Pair(row, col)))
             }
         }
     }
@@ -631,11 +715,11 @@ class SudokuViewModelTest {
         assertTrue("새 게임에서는 에러가 없어야 함", newGameState.invalidCells.isEmpty())
     }
 
-    // 빈 셀을 동적으로 찾는 헬퍼 함수
-    private fun findEmptyCell(board: Array<IntArray>): Pair<Int, Int>? {
+    // 빈 셀을 동적으로 찾는 헬퍼 함수 (초기 셀이 아닌 빈 셀만)
+    private fun findEmptyCell(board: Array<IntArray>, viewModel: SudokuViewModel): Pair<Int, Int>? {
         for (i in 0..8) {
             for (j in 0..8) {
-                if (board[i][j] == 0) return i to j
+                if (!viewModel.isInitialCell(i, j) && board[i][j] == 0) return i to j
             }
         }
         return null
@@ -645,7 +729,7 @@ class SudokuViewModelTest {
     fun `보드 클리어 및 리셋 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         val initialBoard = viewModel.state.first().board.map { it.copyOf() }.toTypedArray()
-        val emptyCell = findEmptyCell(initialBoard) ?: throw AssertionError("빈 셀 없음")
+        val emptyCell = findEmptyCell(initialBoard, viewModel) ?: throw AssertionError("빈 셀 없음")
         val (row, col) = emptyCell
         
         // 유효한 값 찾기
@@ -677,7 +761,7 @@ class SudokuViewModelTest {
     fun `동시 작업 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         val initialBoard = viewModel.state.first().board
-        val emptyCell = findEmptyCell(initialBoard) ?: throw AssertionError("빈 셀 없음")
+        val emptyCell = findEmptyCell(initialBoard, viewModel) ?: throw AssertionError("빈 셀 없음")
         val (row, col) = emptyCell
         
         // 빠른 연속 셀 선택
@@ -711,7 +795,7 @@ class SudokuViewModelTest {
     fun `StateFlow 일관성 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         val initialBoard = viewModel.state.first().board
-        val emptyCell = findEmptyCell(initialBoard) ?: throw AssertionError("빈 셀 없음")
+        val emptyCell = findEmptyCell(initialBoard, viewModel) ?: throw AssertionError("빈 셀 없음")
         val (row, col) = emptyCell
 
         viewModel.selectCell(row, col)
@@ -984,87 +1068,8 @@ class SudokuViewModelTest {
     fun `노트 숫자 추가가 올바르게 작동하는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
         
-        // 노트 모드 활성화
-        viewModel.toggleNoteMode()
-        
-        // 셀 선택
-        viewModel.selectCell(3, 4)
-        
-        // 노트 숫자 추가
-        viewModel.addNoteNumber(5)
-        val state = viewModel.state.first()
-        
-        assertTrue("노트에 숫자 5가 추가되어야 함", state.notes[3][4].contains(5))
-        assertEquals("노트에 숫자가 1개만 있어야 함", 1, state.notes[3][4].size)
-    }
-
-    @Test
-    fun `노트 숫자 제거가 올바르게 작동하는지 테스트`() = runTest {
-        val viewModel = SudokuViewModel()
-        
-        // 노트 모드 활성화
-        viewModel.toggleNoteMode()
-        
-        // 셀 선택
-        viewModel.selectCell(3, 4)
-        
-        // 노트 숫자 추가
-        viewModel.addNoteNumber(5)
-        viewModel.addNoteNumber(7)
-        
-        // 노트 숫자 제거
-        viewModel.removeNoteNumber(5)
-        val state = viewModel.state.first()
-        
-        assertFalse("노트에서 숫자 5가 제거되어야 함", state.notes[3][4].contains(5))
-        assertTrue("노트에 숫자 7은 남아있어야 함", state.notes[3][4].contains(7))
-        assertEquals("노트에 숫자가 1개만 있어야 함", 1, state.notes[3][4].size)
-    }
-
-    @Test
-    fun `노트 모드에서 같은 숫자를 다시 클릭하면 제거되는지 테스트`() = runTest {
-        val viewModel = SudokuViewModel()
-        
-        // 노트 모드 활성화
-        viewModel.toggleNoteMode()
-        
-        // 셀 선택
-        viewModel.selectCell(3, 4)
-        
-        // 노트 숫자 추가
-        viewModel.addNoteNumber(5)
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
         var state = viewModel.state.first()
-        assertTrue("노트에 숫자 5가 추가되어야 함", state.notes[3][4].contains(5))
-        
-        // 같은 숫자 다시 클릭 (제거)
-        viewModel.addNoteNumber(5)
-        state = viewModel.state.first()
-        assertFalse("노트에서 숫자 5가 제거되어야 함", state.notes[3][4].contains(5))
-        assertEquals("노트가 비어있어야 함", 0, state.notes[3][4].size)
-    }
-
-    @Test
-    fun `노트 모드가 비활성화된 상태에서 노트 숫자 추가가 무시되는지 테스트`() = runTest {
-        val viewModel = SudokuViewModel()
-        
-        // 노트 모드 비활성화 상태에서 셀 선택
-        viewModel.selectCell(3, 4)
-        
-        // 노트 숫자 추가 시도
-        viewModel.addNoteNumber(5)
-        val state = viewModel.state.first()
-        
-        assertFalse("노트 모드가 비활성화된 상태에서는 노트가 추가되지 않아야 함", state.notes[3][4].contains(5))
-        assertEquals("노트가 비어있어야 함", 0, state.notes[3][4].size)
-    }
-
-    @Test
-    fun `셀에 값이 있을 때 노트가 표시되지 않는지 테스트`() = runTest {
-        val viewModel = SudokuViewModel()
-        viewModel.newGame()
-        
-        // 빈 셀 찾기
-        val state = viewModel.state.first()
         var emptyRow = -1
         var emptyCol = -1
         for (row in 0..8) {
@@ -1082,110 +1087,227 @@ class SudokuViewModelTest {
         
         // 노트 모드 활성화
         viewModel.toggleNoteMode()
+        
+        // 빈 셀 선택
         viewModel.selectCell(emptyRow, emptyCol)
         
-        // 노트 추가
+        // 노트 숫자 추가
         viewModel.addNoteNumber(5)
-        var stateWithNotes = viewModel.state.first()
-        assertTrue("빈 셀에는 노트가 표시되어야 함", stateWithNotes.notes[emptyRow][emptyCol].contains(5))
+        state = viewModel.state.first()
         
-        // 셀에 값 입력
-        viewModel.toggleNoteMode() // 노트 모드 비활성화
-        viewModel.setCellValue(3)
-        stateWithNotes = viewModel.state.first()
-        
-        // 값이 있는 셀의 노트는 제거되어야 함
-        assertFalse("값이 있는 셀에는 노트가 표시되지 않아야 함", stateWithNotes.notes[emptyRow][emptyCol].isNotEmpty())
+        assertTrue("노트에 숫자 5가 추가되어야 함", state.notes[emptyRow][emptyCol].contains(5))
+        assertEquals("노트에 숫자가 1개만 있어야 함", 1, state.notes[emptyRow][emptyCol].size)
     }
 
     @Test
-    fun `되돌리기 시 노트도 함께 되돌려지는지 테스트`() = runTest {
+    fun `노트 숫자 제거가 올바르게 작동하는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
+        
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
+        var state = viewModel.state.first()
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
         
         // 노트 모드 활성화
         viewModel.toggleNoteMode()
         
-        // 셀 선택 및 노트 추가
-        viewModel.selectCell(3, 4)
+        // 빈 셀 선택
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 노트 숫자 추가
         viewModel.addNoteNumber(5)
         viewModel.addNoteNumber(7)
         
+        // 노트 숫자 제거
+        viewModel.removeNoteNumber(5)
+        state = viewModel.state.first()
+        
+        assertFalse("노트에서 숫자 5가 제거되어야 함", state.notes[emptyRow][emptyCol].contains(5))
+        assertTrue("노트에 숫자 7은 남아있어야 함", state.notes[emptyRow][emptyCol].contains(7))
+        assertEquals("노트에 숫자가 1개만 있어야 함", 1, state.notes[emptyRow][emptyCol].size)
+    }
+
+    @Test
+    fun `노트 모드에서 같은 숫자를 다시 클릭하면 제거되는지 테스트`() = runTest {
+        val viewModel = SudokuViewModel()
+        
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
+        var state = viewModel.state.first()
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 노트 모드 활성화
+        viewModel.toggleNoteMode()
+        
+        // 빈 셀 선택
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 노트 숫자 추가
+        viewModel.addNoteNumber(5)
+        state = viewModel.state.first()
+        assertTrue("노트에 숫자 5가 추가되어야 함", state.notes[emptyRow][emptyCol].contains(5))
+        
+        // 같은 숫자 다시 클릭 (제거)
+        viewModel.addNoteNumber(5)
+        state = viewModel.state.first()
+        assertFalse("노트에서 숫자 5가 제거되어야 함", state.notes[emptyRow][emptyCol].contains(5))
+        assertEquals("노트가 비어있어야 함", 0, state.notes[emptyRow][emptyCol].size)
+    }
+
+    @Test
+    fun `노트 모드가 비활성화된 상태에서 노트 숫자 추가가 무시되는지 테스트`() = runTest {
+        val viewModel = SudokuViewModel()
+        
+        // 빈 셀 찾기 (초기 셀이 아닌 셀)
+        var state = viewModel.state.first()
+        var emptyRow = -1
+        var emptyCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+        
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
+        
+        // 노트 모드 비활성화 상태에서 셀 선택
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 노트 숫자 추가 시도
+        viewModel.addNoteNumber(5)
+        state = viewModel.state.first()
+        
+        assertFalse("노트 모드가 비활성화된 상태에서는 노트가 추가되지 않아야 함", state.notes[emptyRow][emptyCol].contains(5))
+        assertEquals("노트가 비어있어야 함", 0, state.notes[emptyRow][emptyCol].size)
+    }
+
+    @Test
+    fun `초기 셀은 숫자와 노트 모두 변경 불가`() = runTest {
+        val viewModel = SudokuViewModel()
+        viewModel.newGame()
+        val state = viewModel.state.first()
+        // 초기 셀 찾기
+        var initialRow = -1
+        var initialCol = -1
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (viewModel.isInitialCell(row, col)) {
+                    initialRow = row
+                    initialCol = col
+                    break
+                }
+            }
+            if (initialRow != -1) break
+        }
+        assertTrue("초기 셀을 찾을 수 있어야 함", initialRow != -1)
+        // 초기 셀 값 저장
+        val originalValue = state.board[initialRow][initialCol]
+        // 숫자 입력 시도
+        viewModel.selectCell(initialRow, initialCol)
+        viewModel.setCellValue(5)
+        val afterValue = viewModel.state.first().board[initialRow][initialCol]
+        assertEquals("초기 셀 값은 변경되면 안 됨", originalValue, afterValue)
+        // 노트 입력 시도
+        viewModel.toggleNoteMode()
+        viewModel.addNoteNumber(7)
+        val notes = viewModel.state.first().notes[initialRow][initialCol]
+        assertTrue("초기 셀에는 노트가 추가되면 안 됨", notes.isEmpty())
+    }
+
+    @Test
+    fun `노트가 있는 상태에서 숫자 입력 시 노트가 사라지고 숫자가 입력되는지 테스트`() = runTest {
+        val viewModel = SudokuViewModel()
+        
+        // 빈 셀 찾기
+        val emptyCell = findEmptyCell(viewModel.state.first().board, viewModel) ?: throw AssertionError("빈 셀 없음")
+        val (row, col) = emptyCell
+        
+        // 셀 선택
+        viewModel.selectCell(row, col)
+        
+        // 노트 모드 활성화
+        viewModel.toggleNoteMode()
+        
+        // 노트 추가 (1, 2, 3)
+        viewModel.addNoteNumber(1)
+        viewModel.addNoteNumber(2)
+        viewModel.addNoteNumber(3)
+        
+        // 노트가 추가되었는지 확인
         val stateWithNotes = viewModel.state.first()
-        assertTrue("노트에 숫자 5가 있어야 함", stateWithNotes.notes[3][4].contains(5))
-        assertTrue("노트에 숫자 7이 있어야 함", stateWithNotes.notes[3][4].contains(7))
+        assertTrue("노트가 추가되어야 함", stateWithNotes.notes[row][col].containsAll(setOf(1, 2, 3)))
+        assertEquals("일반 숫자는 0이어야 함", 0, stateWithNotes.board[row][col])
         
-        // 되돌리기 (두 번)
-        viewModel.onUndo()
-        viewModel.onUndo()
-        val stateAfterUndo = viewModel.state.first()
-        println("[DEBUG] undo 후 notes[3][4]: " + stateAfterUndo.notes[3][4])
+        // 노트 모드 비활성화
+        viewModel.toggleNoteMode()
+        
+        // 숫자 5 입력
+        viewModel.setCellValue(5)
+        
+        // 노트가 사라지고 숫자가 입력되었는지 확인
+        val stateAfterInput = viewModel.state.first()
+        assertTrue("노트가 사라져야 함", stateAfterInput.notes[row][col].isEmpty())
+        assertEquals("숫자가 입력되어야 함", 5, stateAfterInput.board[row][col])
     }
 
     @Test
-    fun `노트 숫자가 올바른 3x3 그리드 위치에 표시되는지 테스트`() = runTest {
+    fun `숫자가 있는 상태에서 노트 입력 시 숫자가 사라지고 노트가 입력되는지 테스트`() = runTest {
         val viewModel = SudokuViewModel()
+        
+        // 빈 셀 찾기
+        val emptyCell = findEmptyCell(viewModel.state.first().board, viewModel) ?: throw AssertionError("빈 셀 없음")
+        val (row, col) = emptyCell
+        
+        // 셀 선택
+        viewModel.selectCell(row, col)
+        
+        // 숫자 5 입력
+        viewModel.setCellValue(5)
+        
+        // 숫자가 입력되었는지 확인
+        val stateWithNumber = viewModel.state.first()
+        assertEquals("숫자가 입력되어야 함", 5, stateWithNumber.board[row][col])
         
         // 노트 모드 활성화
         viewModel.toggleNoteMode()
         
-        // 셀 선택
-        viewModel.selectCell(3, 4)
+        // 노트 추가 (1, 2, 3)
+        viewModel.addNoteNumber(1)
+        viewModel.addNoteNumber(2)
+        viewModel.addNoteNumber(3)
         
-        // 3x3 그리드의 각 위치에 노트 추가
-        // 1행: 1, 2, 3
-        viewModel.addNoteNumber(1) // (0,0) 위치
-        viewModel.addNoteNumber(2) // (0,1) 위치  
-        viewModel.addNoteNumber(3) // (0,2) 위치
-        
-        // 2행: 4, 5, 6
-        viewModel.addNoteNumber(4) // (1,0) 위치
-        viewModel.addNoteNumber(5) // (1,1) 위치
-        viewModel.addNoteNumber(6) // (1,2) 위치
-        
-        // 3행: 7, 8, 9
-        viewModel.addNoteNumber(7) // (2,0) 위치
-        viewModel.addNoteNumber(8) // (2,1) 위치
-        viewModel.addNoteNumber(9) // (2,2) 위치
-        
-        val state = viewModel.state.first()
-        val notes = state.notes[3][4]
-        
-        // 모든 노트 숫자가 추가되었는지 확인
-        assertEquals("모든 노트 숫자가 추가되어야 함", 9, notes.size)
-        assertTrue("노트에 1이 있어야 함", notes.contains(1))
-        assertTrue("노트에 2가 있어야 함", notes.contains(2))
-        assertTrue("노트에 3이 있어야 함", notes.contains(3))
-        assertTrue("노트에 4가 있어야 함", notes.contains(4))
-        assertTrue("노트에 5가 있어야 함", notes.contains(5))
-        assertTrue("노트에 6이 있어야 함", notes.contains(6))
-        assertTrue("노트에 7이 있어야 함", notes.contains(7))
-        assertTrue("노트에 8이 있어야 함", notes.contains(8))
-        assertTrue("노트에 9가 있어야 함", notes.contains(9))
-    }
-
-    @Test
-    fun `노트 숫자가 개별적으로 토글되는지 테스트`() = runTest {
-        val viewModel = SudokuViewModel()
-        
-        // 노트 모드 활성화
-        viewModel.toggleNoteMode()
-        
-        // 셀 선택
-        viewModel.selectCell(3, 4)
-        
-        // 특정 위치의 노트만 추가
-        viewModel.addNoteNumber(5) // 중앙 (1,1) 위치
-        viewModel.addNoteNumber(9) // 우하단 (2,2) 위치
-        
-        val state = viewModel.state.first()
-        val notes = state.notes[3][4]
-        
-        // 특정 노트만 추가되었는지 확인
-        assertEquals("노트 숫자가 2개만 있어야 함", 2, notes.size)
-        assertTrue("노트에 5가 있어야 함", notes.contains(5))
-        assertTrue("노트에 9가 있어야 함", notes.contains(9))
-        assertFalse("노트에 1이 없어야 함", notes.contains(1))
-        assertFalse("노트에 3이 없어야 함", notes.contains(3))
-        assertFalse("노트에 7이 없어야 함", notes.contains(7))
+        // 숫자가 사라지고 노트가 입력되었는지 확인
+        val stateWithNotes = viewModel.state.first()
+        assertTrue("노트가 추가되어야 함", stateWithNotes.notes[row][col].containsAll(setOf(1, 2, 3)))
+        assertEquals("일반 숫자는 0이어야 함", 0, stateWithNotes.board[row][col])
     }
 }

@@ -240,6 +240,7 @@ class SudokuGameTest {
         // solution과 일치하는지 확인
         val solutionField = game.javaClass.getDeclaredField("solution")
         solutionField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
         val solution = solutionField.get(game) as Array<IntArray>
         for (i in 0..8) {
             for (j in 0..8) {
@@ -491,5 +492,22 @@ class SudokuGameTest {
         // 보드에서도 확인
         val board = game.getBoard()
         assertEquals(validValue, board[emptyRow][emptyCol])
+    }
+
+    @Test
+    fun `퍼즐 생성 후 0이 아닌 셀이 존재하고 isInitialCell이 올바르게 동작하는지`() {
+        val game = SudokuGame()
+        var nonZeroCount = 0
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (game.getBoard()[row][col] != 0) {
+                    nonZeroCount++
+                    assertTrue(game.isInitialCell(row, col))
+                } else {
+                    assertFalse(game.isInitialCell(row, col))
+                }
+            }
+        }
+        assertTrue("0이 아닌 셀이 하나 이상 있어야 함", nonZeroCount > 0)
     }
 }

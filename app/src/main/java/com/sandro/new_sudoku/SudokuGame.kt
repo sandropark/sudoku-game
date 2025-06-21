@@ -11,6 +11,8 @@ class SudokuGame {
     
     fun getBoard(): Array<IntArray> = Array(9) { row -> board[row].clone() }
     
+    fun getInitialBoard(): Array<IntArray> = Array(9) { row -> initialBoard[row].clone() }
+    
     fun getCell(row: Int, col: Int): Int = board[row][col]
     
     fun setCell(row: Int, col: Int, value: Int): Boolean {
@@ -149,8 +151,8 @@ class SudokuGame {
     private fun createPuzzleFromComplete(completeBoard: Array<IntArray>): Array<IntArray> {
         val puzzle = completeBoard.map { it.clone() }.toTypedArray()
         
-        // 랜덤하게 셀을 제거 (약 60-70% 제거하여 적당한 난이도 유지)
-        val cellsToRemove = (45..55).random() // 81개 셀 중 45-55개 제거
+        // 빈 셀 개수 최소 55개로 고정
+        val cellsToRemove = 55 // 81개 중 55개 제거(26개만 남김)
         
         val positions = mutableListOf<Pair<Int, Int>>()
         for (row in 0..8) {

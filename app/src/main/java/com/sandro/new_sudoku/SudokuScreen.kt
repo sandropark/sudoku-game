@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +43,7 @@ fun SudokuScreen(
     ) {
         TopBar()
         StatusBar()
+        
         Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier
@@ -49,22 +51,24 @@ fun SudokuScreen(
                 .padding(horizontal = 8.dp),
             contentAlignment = Alignment.Center
         ) {
-            SudokuBoard(
-                board = state.board,
-                isInitialCells = state.isInitialCells,
-                selectedRow = state.selectedRow,
-                selectedCol = state.selectedCol,
-                invalidCells = state.invalidCells,
-                notes = state.notes,
-                isNoteMode = state.isNoteMode,
-                onCellClick = { row, col ->
-                    viewModel.selectCell(row, col)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .testTag("sudoku_board")
-            )
+            key(state.notes.hashCode(), state.board.hashCode(), state.selectedRow, state.selectedCol) {
+                SudokuBoard(
+                    board = state.board,
+                    isInitialCells = state.isInitialCells,
+                    selectedRow = state.selectedRow,
+                    selectedCol = state.selectedCol,
+                    invalidCells = state.invalidCells,
+                    notes = state.notes,
+                    isNoteMode = state.isNoteMode,
+                    onCellClick = { row, col ->
+                        viewModel.selectCell(row, col)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .testTag("sudoku_board")
+                )
+            }
         }
         Spacer(Modifier.height(8.dp))
         ActionBar(viewModel)
