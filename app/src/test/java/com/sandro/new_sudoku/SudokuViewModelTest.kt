@@ -1,10 +1,8 @@
 package com.sandro.new_sudoku
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertArrayEquals
@@ -14,14 +12,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-
-suspend fun waitForCellValue(viewModel: SudokuViewModel, row: Int, col: Int, expected: Int) {
-    repeat(50) {
-        if (viewModel.state.value.board[row][col] == expected) return
-        delay(10)
-    }
-    assertEquals(expected, viewModel.state.value.board[row][col])
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SudokuViewModelTest {
@@ -84,9 +74,11 @@ class SudokuViewModelTest {
         assertNotNull(valueToSet)
         viewModel.selectCell(emptyRow, emptyCol)
         viewModel.setCellValue(valueToSet!!)
-        waitForCellValue(viewModel, emptyRow, emptyCol, valueToSet!!)
+        advanceUntilIdle()
+        assertEquals(valueToSet, viewModel.state.value.board[emptyRow][emptyCol])
         viewModel.clearCell()
-        waitForCellValue(viewModel, emptyRow, emptyCol, 0)
+        advanceUntilIdle()
+        assertEquals(0, viewModel.state.value.board[emptyRow][emptyCol])
     }
 
     @Test
@@ -767,17 +759,14 @@ class SudokuViewModelTest {
         val viewModel = SudokuViewModel()
         viewModel.newGame()
         advanceUntilIdle()
-        runCurrent()
-        runCurrent()
         var emptyRow = -1
         var emptyCol = -1
         var valueToSet: Int? = null
         for (row in 0..8) {
             for (col in 0..8) {
-                val state = viewModel.state.value
-                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                if (!viewModel.isInitialCell(row, col) && viewModel.state.value.board[row][col] == 0) {
                     for (value in 1..9) {
-                        if (state.board.all { r -> r[col] != value } && state.board[row].all { c -> c != value }) {
+                        if (viewModel.state.value.board.all { r -> r[col] != value } && viewModel.state.value.board[row].all { c -> c != value }) {
                             emptyRow = row
                             emptyCol = col
                             valueToSet = value
