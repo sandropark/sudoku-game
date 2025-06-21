@@ -29,6 +29,7 @@ fun SudokuBoard(
     isInitialCells: Array<BooleanArray>,
     selectedRow: Int,
     selectedCol: Int,
+    invalidCells: Set<Pair<Int, Int>>,
     onCellClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -50,6 +51,7 @@ fun SudokuBoard(
                         val isSelected = row == selectedRow && col == selectedCol
                         val value = board[row][col]
                         val isInitial = isInitialCells[row][col]
+                        val isInvalid = invalidCells.contains(Pair(row, col))
                         val boxIndex = (row / 3) * 3 + (col / 3)  // 0부터 8까지의 3x3 박스 인덱스
                         val isEvenBox = boxIndex % 2 == 0
                         
@@ -57,6 +59,7 @@ fun SudokuBoard(
                             value = value,
                             isSelected = isSelected,
                             isInitial = isInitial,
+                            isInvalid = isInvalid,
                             onClick = { onCellClick(row, col) },
                             cellSize = cellSize,
                             isEvenBox = isEvenBox,
@@ -74,6 +77,7 @@ fun SudokuCell(
     value: Int,
     isSelected: Boolean,
     isInitial: Boolean,
+    isInvalid: Boolean,
     onClick: () -> Unit,
     cellSize: Dp,
     isEvenBox: Boolean,
@@ -88,6 +92,7 @@ fun SudokuCell(
     val textColor = when {
         isInitial -> Color.Black
         value == 0 -> Color.Gray
+        isInvalid -> Color.Red
         else -> Color.Blue
     }
     

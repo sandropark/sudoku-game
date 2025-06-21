@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -35,15 +34,6 @@ fun SudokuScreen(
     viewModel: SudokuViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val showError = state.showError
-    val errorMessage = state.errorMessage
-
-    if (showError && errorMessage.isNotEmpty()) {
-        LaunchedEffect(errorMessage) {
-            kotlinx.coroutines.delay(2000)
-            viewModel.clearError()
-        }
-    }
     
     Column(
         modifier = modifier
@@ -64,6 +54,7 @@ fun SudokuScreen(
                 isInitialCells = state.isInitialCells,
                 selectedRow = state.selectedRow,
                 selectedCol = state.selectedCol,
+                invalidCells = state.invalidCells,
                 onCellClick = { row, col ->
                     viewModel.selectCell(row, col)
                 },
@@ -86,16 +77,6 @@ fun SudokuScreen(
             modifier = Modifier.testTag("number_pad")
         )
         Spacer(Modifier.height(8.dp))
-        if (state.showError) {
-            Text(
-                text = state.errorMessage,
-                color = Color.Red,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .testTag("error_message")
-            )
-        }
     }
 }
 

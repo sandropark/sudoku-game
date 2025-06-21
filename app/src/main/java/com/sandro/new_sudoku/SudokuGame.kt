@@ -14,19 +14,18 @@ class SudokuGame {
     fun getCell(row: Int, col: Int): Int = board[row][col]
     
     fun setCell(row: Int, col: Int, value: Int): Boolean {
-        if (initialBoard[row][col] != 0) return false // 초기 숫자는 변경 불가
+        // 요구사항: 숫자는 항상 입력되어야 함 (초기 셀도 변경 가능)
         if (value < 0 || value > 9) return false // 0-9만 허용 (0은 빈 셀)
         
-        // 0이 아닌 경우에만 스도쿠 규칙 검사
-        if (value != 0 && !isValidMove(row, col, value)) return false
-        
+        // 숫자를 항상 입력 (유효성 검사와 관계없이)
         board[row][col] = value
         return true
     }
     
     fun isInitialCell(row: Int, col: Int): Boolean = initialBoard[row][col] != 0
     
-    fun isValidMove(row: Int, col: Int, value: Int): Boolean {
+    fun isCellValid(row: Int, col: Int): Boolean {
+        val value = board[row][col]
         if (value == 0) return true // 빈 셀은 항상 유효
         
         // 행 검사
@@ -196,10 +195,32 @@ class SudokuGame {
     }
     
     fun setBoard(newBoard: Array<IntArray>) {
-        for (row in 0..8) {
-            for (col in 0..8) {
-                board[row][col] = newBoard[row][col]
+        board = newBoard.map { it.copyOf() }.toTypedArray()
+    }
+    
+    // 기존 테스트와의 호환성을 위한 메서드
+    fun isValidMove(row: Int, col: Int, value: Int): Boolean {
+        if (value == 0) return true // 빈 셀은 항상 유효
+        
+        // 행 검사
+        for (c in 0..8) {
+            if (c != col && board[row][c] == value) return false
+        }
+        
+        // 열 검사
+        for (r in 0..8) {
+            if (r != row && board[r][col] == value) return false
+        }
+        
+        // 3x3 박스 검사
+        val boxRow = (row / 3) * 3
+        val boxCol = (col / 3) * 3
+        for (r in boxRow until boxRow + 3) {
+            for (c in boxCol until boxCol + 3) {
+                if ((r != row || c != col) && board[r][c] == value) return false
             }
         }
+        
+        return true
     }
 } 

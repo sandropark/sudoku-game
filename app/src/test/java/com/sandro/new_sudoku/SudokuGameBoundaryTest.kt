@@ -1,8 +1,13 @@
 package com.sandro.new_sudoku
 
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
-import org.junit.Before
 
 class SudokuGameBoundaryTest {
 
@@ -27,19 +32,16 @@ class SudokuGameBoundaryTest {
     @Test
     fun `최대값 9 설정이 올바르게 작동하는지 테스트`() {
         val game = SudokuGame()
-        val board = game.getBoard()
         var found = false
         for (row in 0..8) {
             for (col in 0..8) {
-                if (board[row][col] != 0) continue
-                if (game.isValidMove(row, col, 9)) {
+                if (game.getCell(row, col) == 0) {
+                    // 숫자는 항상 입력되어야 함 (요구사항에 따라)
                     assertTrue(game.setCell(row, col, 9))
                     assertEquals(9, game.getCell(row, col))
-                } else {
-                    assertFalse(game.setCell(row, col, 9))
+                    found = true
+                    break
                 }
-                found = true
-                break
             }
             if (found) break
         }
@@ -106,8 +108,9 @@ class SudokuGameBoundaryTest {
             for (col in 0..8) {
                 if (board[row][col] != 0) {
                     val originalValue = game.getCell(row, col)
-                    assertFalse(game.setCell(row, col, (originalValue % 9) + 1))
-                    assertEquals(originalValue, game.getCell(row, col))
+                    // 요구사항: 숫자는 항상 입력되어야 함
+                    assertTrue(game.setCell(row, col, (originalValue % 9) + 1))
+                    assertEquals((originalValue % 9) + 1, game.getCell(row, col))
                     found = true
                 }
             }
@@ -122,14 +125,11 @@ class SudokuGameBoundaryTest {
         for (row in 0..8) {
             for (col in 0..8) {
                 if (game.getCell(row, col) == 0) {
-                    if (game.isValidMove(row, col, 5)) {
-                        assertTrue(game.setCell(row, col, 5))
-                        assertEquals(5, game.getCell(row, col))
-                        // 테스트 후 초기화
-                        game.setCell(row, col, 0)
-                    } else {
-                        assertFalse(game.setCell(row, col, 5))
-                    }
+                    // 숫자는 항상 입력되어야 함 (요구사항에 따라)
+                    assertTrue(game.setCell(row, col, 5))
+                    assertEquals(5, game.getCell(row, col))
+                    // 테스트 후 초기화
+                    game.setCell(row, col, 0)
                 }
             }
         }
@@ -265,26 +265,22 @@ class SudokuGameBoundaryTest {
     @Test
     fun testInvalidValueRange() {
         val game = SudokuGame()
-        val board = game.getBoard()
         var found = false
+        val board = game.getBoard()
         for (row in 0..8) {
             for (col in 0..8) {
                 if (board[row][col] == 0) {
-                    // 1-9는 허용되어야 함
+                    // 1-9는 허용되어야 함 (숫자는 항상 입력됨)
                     for (v in 1..9) {
-                        if (game.isValidMove(row, col, v)) {
-                            assertTrue(game.setCell(row, col, v))
-                            assertEquals(v, game.getCell(row, col))
-                            game.setCell(row, col, 0)
-                        } else {
-                            assertFalse(game.setCell(row, col, v))
-                        }
+                        assertTrue(game.setCell(row, col, v))
+                        assertEquals(v, game.getCell(row, col))
+                        game.setCell(row, col, 0)
                     }
-                    // 10 이상의 값
+                    // 10 이상의 값은 거부되어야 함
                     assertFalse(game.setCell(row, col, 10))
                     assertFalse(game.setCell(row, col, 15))
                     assertFalse(game.setCell(row, col, 100))
-                    // 음수 값
+                    // 음수 값은 거부되어야 함
                     assertFalse(game.setCell(row, col, -1))
                     assertFalse(game.setCell(row, col, -5))
                     assertFalse(game.setCell(row, col, -10))
@@ -306,10 +302,14 @@ class SudokuGameBoundaryTest {
             for (col in 0..8) {
                 if (board[row][col] != 0) {
                     assertTrue("($row, $col)는 초기값 셀이어야 함", game.isInitialCell(row, col))
-                    assertFalse("초기값 셀은 수정할 수 없어야 함", game.setCell(row, col, 5))
+                    // 요구사항: 숫자는 항상 입력되어야 함
+                    assertTrue("초기값 셀도 수정할 수 있어야 함", game.setCell(row, col, 5))
+                    assertEquals(5, game.getCell(row, col))
                     found = true
+                    break
                 }
             }
+            if (found) break
         }
         assertTrue(found)
     }

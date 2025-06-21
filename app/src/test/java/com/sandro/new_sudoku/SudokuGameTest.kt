@@ -30,31 +30,30 @@ class SudokuGameTest {
     fun `셀 값 설정이 올바르게 작동하는지 테스트`() {
         val game = SudokuGame()
         val board = game.getBoard()
-        // 빈 셀을 하나 찾는다 (초기 셀이 아닌 셀)
+        
+        // 빈 셀에 값 설정
         var found = false
-        outer@for (row in 0..8) {
+        for (row in 0..8) {
             for (col in 0..8) {
                 if (!game.isInitialCell(row, col)) {
-                    // 넣을 수 있는 값 찾기
-                    val value = (1..9).firstOrNull { game.isValidMove(row, col, it) }
-                    assertNotNull("넣을 수 있는 값이 있어야 함", value)
-                    // 빈 셀에 숫자 설정
-                    assertTrue(game.setCell(row, col, value!!))
-                    assertEquals(value, game.getCell(row, col))
+                    assertTrue(game.setCell(row, col, 5))
+                    assertEquals(5, game.getCell(row, col))
                     found = true
-                    break@outer
+                    break
                 }
             }
+            if (found) break
         }
-        assertTrue(found) // 빈 셀이 반드시 하나는 있어야 함
-        // 초기 숫자는 변경 불가
+        assertTrue(found)
+        
+        // 초기 숫자는 변경 가능 (요구사항: 숫자는 항상 입력되어야 함)
         found = false
         outer@for (row in 0..8) {
             for (col in 0..8) {
                 if (game.isInitialCell(row, col)) {
                     val original = board[row][col]
-                    assertFalse(game.setCell(row, col, (original % 9) + 1)) // 다른 값 시도
-                    assertEquals(original, game.getCell(row, col)) // 변경되지 않음
+                    assertTrue(game.setCell(row, col, (original % 9) + 1)) // 다른 값 시도
+                    assertEquals((original % 9) + 1, game.getCell(row, col)) // 변경됨
                     found = true
                     break@outer
                 }

@@ -13,7 +13,8 @@ data class SudokuState(
     val selectedCol: Int = -1,
     val isGameComplete: Boolean = false,
     val showError: Boolean = false,
-    val errorMessage: String = ""
+    val errorMessage: String = "",
+    val invalidCells: Set<Pair<Int, Int>> = emptySet()
 )
 
 class SudokuViewModel : ViewModel() {
@@ -44,38 +45,45 @@ class SudokuViewModel : ViewModel() {
         )
     }
     
+    // 전체 보드를 검사해서 잘못된 셀 좌표를 반환
+    private fun calculateInvalidCells(): Set<Pair<Int, Int>> {
+        val invalids = mutableSetOf<Pair<Int, Int>>()
+        val board = game.getBoard()
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (board[row][col] != 0 && !game.isCellValid(row, col)) {
+                    invalids.add(Pair(row, col))
+                }
+            }
+        }
+        return invalids
+    }
+    
     fun setCellValue(value: Int) {
         val currentState = _state.value
         val row = currentState.selectedRow
         val col = currentState.selectedCol
         if (row == -1 || col == -1) {
-            _state.value = currentState.copy(showError = false, errorMessage = "")
+            // 셀을 선택하지 않은 경우 아무것도 하지 않음
             return
         }
-        if (game.isInitialCell(row, col)) {
-            _state.value = currentState.copy(
-                showError = true,
-                errorMessage = "초기 숫자는 변경할 수 없습니다"
-            )
-            return
-        }
-        undoStack.push(Triple(
-            game.getBoard().map { it.copyOf() }.toTypedArray(),
-            row,
-            col
-        ))
+        
+        // 완전히 새로운 2차원 배열로 복사
+        val src = game.getBoard()
+        val currentBoard = src.map { it.copyOf() }.toTypedArray()
+        undoStack.push(Triple(currentBoard, row, col))
+        
+        // 숫자를 항상 입력 (요구사항: 숫자는 항상 입력되어야 함)
         val success = game.setCell(row, col, value)
         if (!success) {
-            _state.value = currentState.copy(
-                showError = true,
-                errorMessage = "이 숫자는 여기에 놓을 수 없습니다"
-            )
             return
         }
+        
         _state.value = currentState.copy(
-            board = game.getBoard(),
+            board = game.getBoard().map { it.copyOf() }.toTypedArray(),
             showError = false,
             errorMessage = "",
+            invalidCells = calculateInvalidCells(),
             isGameComplete = game.isGameComplete()
         )
     }
@@ -85,33 +93,26 @@ class SudokuViewModel : ViewModel() {
         val row = currentState.selectedRow
         val col = currentState.selectedCol
         if (row == -1 || col == -1) {
-            _state.value = currentState.copy(showError = false, errorMessage = "")
+            // 셀을 선택하지 않은 경우 아무것도 하지 않음
             return
         }
-        if (game.isInitialCell(row, col)) {
-            _state.value = currentState.copy(
-                showError = true,
-                errorMessage = "초기 숫자는 변경할 수 없습니다"
-            )
-            return
-        }
-        undoStack.push(Triple(
-            game.getBoard().map { it.copyOf() }.toTypedArray(),
-            row,
-            col
-        ))
+        
+        // 완전히 새로운 2차원 배열로 복사
+        val src = game.getBoard()
+        val currentBoard = src.map { it.copyOf() }.toTypedArray()
+        undoStack.push(Triple(currentBoard, row, col))
+        
+        // 숫자를 항상 지우기 (요구사항: 숫자는 항상 입력되어야 함)
         val success = game.setCell(row, col, 0)
         if (!success) {
-            _state.value = currentState.copy(
-                showError = true,
-                errorMessage = "이 숫자는 여기에 놓을 수 없습니다"
-            )
             return
         }
+        
         _state.value = currentState.copy(
-            board = game.getBoard(),
+            board = game.getBoard().map { it.copyOf() }.toTypedArray(),
             showError = false,
-            errorMessage = ""
+            errorMessage = "",
+            invalidCells = calculateInvalidCells()
         )
     }
     
@@ -123,7 +124,8 @@ class SudokuViewModel : ViewModel() {
             selectedRow = -1,
             selectedCol = -1,
             isGameComplete = false,
-            showError = false
+            showError = false,
+            invalidCells = calculateInvalidCells()
         )
     }
     
@@ -131,7 +133,8 @@ class SudokuViewModel : ViewModel() {
         game.solveGame()
         _state.value = _state.value.copy(
             board = game.getBoard(),
-            isGameComplete = true
+            isGameComplete = true,
+            invalidCells = calculateInvalidCells()
         )
     }
     
@@ -143,7 +146,8 @@ class SudokuViewModel : ViewModel() {
             selectedRow = -1,
             selectedCol = -1,
             isGameComplete = false,
-            showError = false
+            showError = false,
+            invalidCells = calculateInvalidCells()
         )
     }
     
@@ -161,13 +165,16 @@ class SudokuViewModel : ViewModel() {
     fun onUndo() {
         if (undoStack.isNotEmpty()) {
             val (prevBoard, prevRow, prevCol) = undoStack.pop()
-            game.setBoard(prevBoard.map { it.copyOf() }.toTypedArray())
+            // 완전히 새로운 2차원 배열로 복사
+            val restoreBoard = prevBoard.map { it.copyOf() }.toTypedArray()
+            game.setBoard(restoreBoard)
             _state.value = _state.value.copy(
-                board = game.getBoard(),
+                board = game.getBoard().map { it.copyOf() }.toTypedArray(),
                 selectedRow = prevRow,
                 selectedCol = prevCol,
                 showError = false,
-                errorMessage = ""
+                errorMessage = "",
+                invalidCells = calculateInvalidCells() // undo 시에도 전체 검사
             )
         }
     }
