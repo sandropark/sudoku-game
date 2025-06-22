@@ -248,16 +248,16 @@ class SudokuGameBoundaryTest {
     fun testInvalidIndexAccess() {
         val game = SudokuGame()
         // 잘못된 인덱스 접근 테스트
-        assertThrows(ArrayIndexOutOfBoundsException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             game.getCell(-1, 0)
         }
-        assertThrows(ArrayIndexOutOfBoundsException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             game.getCell(0, -1)
         }
-        assertThrows(ArrayIndexOutOfBoundsException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             game.getCell(9, 0)
         }
-        assertThrows(ArrayIndexOutOfBoundsException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             game.getCell(0, 9)
         }
     }

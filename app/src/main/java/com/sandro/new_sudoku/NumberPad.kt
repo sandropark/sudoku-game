@@ -17,6 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,7 +70,11 @@ fun NumberButton(
             .background(Color(0xFF1976D2), shape = RoundedCornerShape(8.dp))
             .border(2.dp, Color(0xFF1976D2), shape = RoundedCornerShape(8.dp))
             .clickable { onClick() }
-            .testTag("number_btn_$number"),
+            .testTag("number_btn_$number")
+            .semantics {
+                this.contentDescription = "숫자 $number 버튼"
+                this.role = Role.Button
+            },
         contentAlignment = Alignment.Center
     ) {
         Text(

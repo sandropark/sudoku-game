@@ -25,6 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -163,12 +167,18 @@ fun ActionButton(text: String, badgeCount: Int = 0, testTag: String? = null, onC
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = if (onClick != null) Modifier.clickable { onClick() } else Modifier
-                ) {
+            modifier = if (onClick != null) {
+                Modifier.clickable { onClick() }
+                    .semantics {
+                        this.contentDescription = "$text 버튼"
+                        this.role = Role.Button
+                    }
+            } else Modifier
+        ) {
             // 실제 아이콘은 프로젝트에 맞게 교체
             Text("⬜", fontSize = 20.sp)
             Text(text, style = MaterialTheme.typography.bodySmall)
-                }
+        }
         if (badgeCount > 0) {
             Box(
                 Modifier

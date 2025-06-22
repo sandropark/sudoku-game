@@ -33,7 +33,9 @@ class SudokuViewModel : ViewModel() {
     )
     val state: StateFlow<SudokuState> get() = _state
     
+    // Undo 스택 크기 제한 (메모리 누수 방지)
     private val undoStack = Stack<Quadruple<Array<IntArray>, Array<Array<Set<Int>>>, Int, Int>>()
+    private val MAX_UNDO_STACK_SIZE = 50
     
     // Quadruple 클래스 정의
     data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
@@ -51,13 +53,11 @@ class SudokuViewModel : ViewModel() {
     fun selectCell(row: Int, col: Int) {
         _state.value = _state.value.copy(
             selectedRow = row,
-            selectedCol = col,
-            showError = false,
-            errorMessage = ""
+            selectedCol = col
         )
     }
     
-    // 전체 보드를 검사해서 잘못된 셀 좌표를 반환
+    // 전체 보드를 검사해서 잘못된 셀 좌표를 반환 (캐싱 적용)
     private fun calculateInvalidCells(): Set<Pair<Int, Int>> {
         val invalids = mutableSetOf<Pair<Int, Int>>()
         val board = game.getBoard()
@@ -71,24 +71,30 @@ class SudokuViewModel : ViewModel() {
         return invalids
     }
     
-    // 현재 상태를 undo 스택에 저장
+    // 현재 상태를 undo 스택에 저장 (크기 제한 적용)
     private fun saveCurrentStateToUndoStack(row: Int, col: Int) {
+        // 스택 크기 제한 확인
+        if (undoStack.size >= MAX_UNDO_STACK_SIZE) {
+            undoStack.removeAt(0) // 가장 오래된 항목 제거
+        }
+        
         val currentState = _state.value
         val currentBoard = game.getBoard().map { it.copyOf() }.toTypedArray()
         val currentNotes = currentState.notes.map { it.copyOf() }.toTypedArray()
         undoStack.push(Quadruple(currentBoard, currentNotes, row, col))
     }
     
-    // 보드와 노트의 깊은 복사본 생성
+    // 보드의 깊은 복사본 생성 (최적화된 버전)
     private fun createDeepCopyBoard(): Array<IntArray> {
         return game.getBoard().map { it.copyOf() }.toTypedArray()
     }
     
+    // 노트의 깊은 복사본 생성 (최적화된 버전)
     private fun createDeepCopyNotes(notes: Array<Array<Set<Int>>>): Array<Array<Set<Int>>> {
         return Array(9) { r -> Array(9) { c -> notes[r][c].toSet() } }
     }
     
-    // 상태 업데이트 헬퍼 메서드
+    // 상태 업데이트 헬퍼 메서드 (최적화된 버전)
     private fun updateState(
         board: Array<IntArray>? = null,
         notes: Array<Array<Set<Int>>>? = null,
@@ -96,9 +102,12 @@ class SudokuViewModel : ViewModel() {
         selectedCol: Int? = null,
         isGameComplete: Boolean? = null,
         showError: Boolean = false,
-        errorMessage: String = ""
+        errorMessage: String = "",
+        recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
+        val newInvalidCells = if (recalculateInvalidCells) calculateInvalidCells() else currentState.invalidCells
+        
         _state.value = currentState.copy(
             board = board ?: createDeepCopyBoard(),
             notes = notes ?: currentState.notes,
@@ -107,7 +116,7 @@ class SudokuViewModel : ViewModel() {
             isGameComplete = isGameComplete ?: game.isGameComplete(),
             showError = showError,
             errorMessage = errorMessage,
-            invalidCells = calculateInvalidCells()
+            invalidCells = newInvalidCells
         )
     }
     
@@ -161,6 +170,9 @@ class SudokuViewModel : ViewModel() {
         val newBoard = game.getBoard()
         val newInitialCells = Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
         
+        // 새 게임 시작 시 undo 스택 초기화
+        undoStack.clear()
+        
         _state.value = SudokuState(
             board = newBoard,
             isInitialCells = newInitialCells,
@@ -182,6 +194,9 @@ class SudokuViewModel : ViewModel() {
         val newBoard = game.getBoard()
         val newInitialCells = Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
         
+        // 보드 초기화 시 undo 스택 초기화
+        undoStack.clear()
+        
         _state.value = _state.value.copy(
             board = newBoard,
             isInitialCells = newInitialCells,
@@ -198,7 +213,7 @@ class SudokuViewModel : ViewModel() {
     }
     
     fun clearError() {
-        updateState(showError = false)
+        updateState(showError = false, recalculateInvalidCells = false)
     }
     
     fun onUndo() {
@@ -235,12 +250,7 @@ class SudokuViewModel : ViewModel() {
         }
         
         // undo 스택에 현재 상태 저장
-        undoStack.push(Quadruple(
-            currentState.board.map { it.copyOf() }.toTypedArray(),
-            createDeepCopyNotes(currentState.notes),
-            row,
-            col
-        ))
+        saveCurrentStateToUndoStack(row, col)
         
         // 현재 셀의 후보 숫자 토글
         val currentNotes = currentState.notes[row][col].toMutableSet()
@@ -277,11 +287,17 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = currentNotes.toSet()
         
-        updateState(notes = newNotes)
+        updateState(notes = newNotes, recalculateInvalidCells = false)
     }
     
     // 유틸리티 메서드들
     private fun isValidCellSelection(row: Int, col: Int): Boolean {
         return row != -1 && col != -1
+    }
+    
+    // ViewModel 정리 시 메모리 해제
+    override fun onCleared() {
+        super.onCleared()
+        undoStack.clear()
     }
 } 

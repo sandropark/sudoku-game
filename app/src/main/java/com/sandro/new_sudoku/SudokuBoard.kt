@@ -20,6 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -64,23 +68,14 @@ fun SudokuBoard(
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     for (col in 0..8) {
-                        val isSelected = remember(row, col, selectedRow, selectedCol) {
-                            row == selectedRow && col == selectedCol
-                        }
-                        val value = remember(board, row, col) { board[row][col] }
-                        val isInitial = remember(isInitialCells, row, col) { isInitialCells[row][col] }
-                        val isInvalid = remember(invalidCells, row, col) { 
-                            invalidCells.contains(Pair(row, col)) 
-                        }
-                        val isEvenBox = remember(boxIndices, row, col) { 
-                            boxIndices[row][col] % 2 == 0 
-                        }
-                        val cellNotes = remember(notes, row, col) { notes[row][col] }
-                        
-                        val cellTag = remember(row, col, isInitial) {
-                            "cell_${row}_${col}" + if (!isInitial) "_editable" else ""
-                        }
-                        
+                        val isSelected = row == selectedRow && col == selectedCol
+                        val value = board[row][col]
+                        val isInitial = isInitialCells[row][col]
+                        val isInvalid = invalidCells.contains(Pair(row, col))
+                        val isEvenBox = boxIndices[row][col] % 2 == 0
+                        val cellNotes = notes[row][col]
+                        val cellTag = "cell_${row}_${col}" + if (!isInitial) "_editable" else ""
+
                         SudokuCell(
                             value = value,
                             isSelected = isSelected,
@@ -137,6 +132,25 @@ fun SudokuCell(
     val hasNotes = remember(notes) { notes.isNotEmpty() }
     val hasValue = remember(value) { value != 0 }
     
+    // 접근성을 위한 contentDescription 생성
+    val contentDescription = remember(value, isSelected, isInitial, isInvalid, hasNotes, notes) {
+        buildString {
+            when {
+                hasNotes -> {
+                    append("노트 셀, 후보 숫자: ")
+                    append(notes.sorted().joinToString(", "))
+                }
+                hasValue -> {
+                    append("숫자 셀, 값: $value")
+                    if (isInitial) append(", 초기 숫자")
+                    if (isInvalid) append(", 잘못된 숫자")
+                }
+                else -> append("빈 셀")
+            }
+            if (isSelected) append(", 선택됨")
+        }
+    }
+    
     Box(
         modifier = modifier
             .size(cellSize)
@@ -146,7 +160,11 @@ fun SudokuCell(
                 color = Color.Gray.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(0.dp)
             )
-            .clickable { onClick() },
+            .clickable { onClick() }
+            .semantics {
+                this.contentDescription = contentDescription
+                this.role = Role.Button
+            },
         contentAlignment = Alignment.Center
     ) {
         if (hasNotes) {

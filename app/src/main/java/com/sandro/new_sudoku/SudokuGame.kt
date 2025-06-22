@@ -5,38 +5,67 @@ class SudokuGame {
     private var solution = Array(9) { IntArray(9) { 0 } }
     private var initialBoard = Array(9) { IntArray(9) { 0 } }
     
+    companion object {
+        const val BOARD_SIZE = 9
+        const val MIN_VALUE = 0
+        const val MAX_VALUE = 9
+        const val CELLS_TO_REMOVE = 55
+        const val MIN_CELLS_TO_KEEP = 26
+    }
+    
     init {
         generateNewGame()
     }
     
-    fun getBoard(): Array<IntArray> = Array(9) { row -> board[row].clone() }
+    fun getBoard(): Array<IntArray> = Array(BOARD_SIZE) { row -> board[row].clone() }
     
-    fun getInitialBoard(): Array<IntArray> = Array(9) { row -> initialBoard[row].clone() }
+    fun getInitialBoard(): Array<IntArray> = Array(BOARD_SIZE) { row -> initialBoard[row].clone() }
     
-    fun getCell(row: Int, col: Int): Int = board[row][col]
+    fun getCell(row: Int, col: Int): Int {
+        require(row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
+            "Invalid cell coordinates: ($row, $col). Must be between 0 and ${BOARD_SIZE - 1}"
+        }
+        return board[row][col]
+    }
     
     fun setCell(row: Int, col: Int, value: Int): Boolean {
-        // 요구사항: 숫자는 항상 입력되어야 함 (초기 셀도 변경 가능)
-        if (value < 0 || value > 9) return false // 0-9만 허용 (0은 빈 셀)
+        // 배열 범위 체크
+        if (row !in 0 until BOARD_SIZE || col !in 0 until BOARD_SIZE) {
+            return false
+        }
+        
+        // 값 범위 체크
+        if (value !in MIN_VALUE..MAX_VALUE) {
+            return false
+        }
         
         // 숫자를 항상 입력 (유효성 검사와 관계없이)
         board[row][col] = value
         return true
     }
     
-    fun isInitialCell(row: Int, col: Int): Boolean = initialBoard[row][col] != 0
+    fun isInitialCell(row: Int, col: Int): Boolean {
+        require(row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
+            "Invalid cell coordinates: ($row, $col). Must be between 0 and ${BOARD_SIZE - 1}"
+        }
+        return initialBoard[row][col] != 0
+    }
     
     fun isCellValid(row: Int, col: Int): Boolean {
+        require(row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
+            "Invalid cell coordinates: ($row, $col). Must be between 0 and ${BOARD_SIZE - 1}"
+        }
+        
         val value = board[row][col]
         if (value == 0) return true // 빈 셀은 항상 유효
         
         // 행 검사
-        for (c in 0..8) {
+        for (c in 0 until BOARD_SIZE) {
             if (c != col && board[row][c] == value) return false
         }
         
         // 열 검사
-        for (r in 0..8) {
+        for (r in 0 until BOARD_SIZE) {
             if (r != row && board[r][col] == value) return false
         }
         
@@ -53,8 +82,8 @@ class SudokuGame {
     }
     
     fun isGameComplete(): Boolean {
-        for (row in 0..8) {
-            for (col in 0..8) {
+        for (row in 0 until BOARD_SIZE) {
+            for (col in 0 until BOARD_SIZE) {
                 if (board[row][col] == 0) return false
             }
         }
@@ -135,7 +164,7 @@ class SudokuGame {
                     val col1 = box + (0..2).random()
                     val col2 = box + (0..2).random()
                     if (col1 != col2) {
-                        for (row in 0..8) {
+                        for (row in 0 until BOARD_SIZE) {
                             val temp = transformed[row][col1]
                             transformed[row][col1] = transformed[row][col2]
                             transformed[row][col2] = temp
@@ -152,11 +181,11 @@ class SudokuGame {
         val puzzle = completeBoard.map { it.clone() }.toTypedArray()
         
         // 빈 셀 개수 최소 55개로 고정
-        val cellsToRemove = 55 // 81개 중 55개 제거(26개만 남김)
+        val cellsToRemove = CELLS_TO_REMOVE // 81개 중 55개 제거(26개만 남김)
         
         val positions = mutableListOf<Pair<Int, Int>>()
-        for (row in 0..8) {
-            for (col in 0..8) {
+        for (row in 0 until BOARD_SIZE) {
+            for (col in 0 until BOARD_SIZE) {
                 positions.add(Pair(row, col))
             }
         }
@@ -197,20 +226,27 @@ class SudokuGame {
     }
     
     fun setBoard(newBoard: Array<IntArray>) {
+        require(newBoard.size == BOARD_SIZE) { "Board must be ${BOARD_SIZE}x${BOARD_SIZE}" }
+        require(newBoard.all { it.size == BOARD_SIZE }) { "All rows must have ${BOARD_SIZE} columns" }
+        
         board = newBoard.map { it.copyOf() }.toTypedArray()
     }
     
     // 기존 테스트와의 호환성을 위한 메서드
     fun isValidMove(row: Int, col: Int, value: Int): Boolean {
+        if (row !in 0 until BOARD_SIZE || col !in 0 until BOARD_SIZE) {
+            return false
+        }
+        
         if (value == 0) return true // 빈 셀은 항상 유효
         
         // 행 검사
-        for (c in 0..8) {
+        for (c in 0 until BOARD_SIZE) {
             if (c != col && board[row][c] == value) return false
         }
         
         // 열 검사
-        for (r in 0..8) {
+        for (r in 0 until BOARD_SIZE) {
             if (r != row && board[r][col] == value) return false
         }
         
