@@ -101,8 +101,8 @@ class SudokuViewModel : ViewModel() {
         selectedRow: Int? = null,
         selectedCol: Int? = null,
         isGameComplete: Boolean? = null,
-        showError: Boolean = false,
-        errorMessage: String = "",
+        showError: Boolean? = null,
+        errorMessage: String? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -114,8 +114,8 @@ class SudokuViewModel : ViewModel() {
             selectedRow = selectedRow ?: currentState.selectedRow,
             selectedCol = selectedCol ?: currentState.selectedCol,
             isGameComplete = isGameComplete ?: game.isGameComplete(),
-            showError = showError,
-            errorMessage = errorMessage,
+            showError = showError ?: currentState.showError,
+            errorMessage = errorMessage ?: currentState.errorMessage,
             invalidCells = newInvalidCells
         )
     }
@@ -140,7 +140,7 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = emptySet()
         
-        updateState(board = game.getBoard(), notes = newNotes, showError = false)
+        updateState(board = game.getBoard(), notes = newNotes)
     }
     
     fun clearCell() {
@@ -162,7 +162,7 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = emptySet()
         
-        updateState(board = game.getBoard(), notes = newNotes, showError = false)
+        updateState(board = game.getBoard(), notes = newNotes)
     }
     
     fun newGame() {

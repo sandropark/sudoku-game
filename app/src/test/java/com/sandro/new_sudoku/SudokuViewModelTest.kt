@@ -467,7 +467,11 @@ class SudokuViewModelTest {
         val (row, col) = anotherEmptyCell
         viewModel.selectCell(row, col)
         val stateAfterSelection = viewModel.state.first()
+        
+        // 에러 상태가 유지되어야 함 (틀린 숫자는 빨간색으로 표시되어야 함)
         assertTrue("에러 상태가 유지되어야 함", stateAfterSelection.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        assertEquals("선택된 셀이 변경되어야 함", row, stateAfterSelection.selectedRow)
+        assertEquals("선택된 셀이 변경되어야 함", col, stateAfterSelection.selectedCol)
     }
 
     @Test

@@ -519,12 +519,16 @@ class SudokuIntegrationTest {
         if (validValue != null) {
             viewModel.setCellValue(validValue)
             state = viewModel.state.first()
+            // 유효한 값을 입력했으므로 에러 상태가 해결되어야 함
             assertFalse("에러 상태가 해결되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
+            assertEquals("유효한 값이 입력되어야 함", validValue, state.board[emptyRow][emptyCol])
         } else {
             // 유효한 값이 없으면 지우기
             viewModel.clearCell()
             state = viewModel.state.first()
+            // 셀을 지웠으므로 에러 상태가 해결되어야 함
             assertFalse("에러 상태가 해결되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
+            assertEquals("셀이 지워져야 함", 0, state.board[emptyRow][emptyCol])
         }
     }
 
