@@ -148,7 +148,8 @@ class SudokuViewModel : ViewModel() {
         val row = currentState.selectedRow
         val col = currentState.selectedCol
         
-        if (!isValidCellSelection(row, col)) {
+        // 초기 셀은 지우기 기능으로 삭제할 수 없음
+        if (!isValidCellSelection(row, col) || isInitialCell(row, col)) {
             return
         }
         

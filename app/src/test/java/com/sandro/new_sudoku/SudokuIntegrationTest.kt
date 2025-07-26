@@ -441,10 +441,10 @@ class SudokuIntegrationTest {
         viewModel.clearCell()
         
         state = viewModel.state.first()
-        // 요구사항: 숫자는 항상 입력되어야 함 (지우기도 가능)
-        assertEquals(0, state.board[initialRow][initialCol])
-        // 요구사항: 빈 셀은 invalidCells에 포함되지 않아야 함
-        assertFalse(state.invalidCells.contains(Pair(initialRow, initialCol)))
+        // 요구사항: 초기 셀은 지우기 기능으로 삭제되면 안 됨
+        assertEquals(initialValue, state.board[initialRow][initialCol])
+        // 초기 셀은 여전히 초기 셀이어야 함
+        assertTrue(viewModel.isInitialCell(initialRow, initialCol))
     }
 
     @Test
