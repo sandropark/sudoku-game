@@ -96,28 +96,8 @@ class SudokuViewModelTest {
             }
         }
         
-        // 빈 셀이 2개 미만이면 다른 방법으로 테스트
+        // 빈 셀이 2개 미만이면 테스트 종료 (스도쿠 규칙 위반 테스트 불가)
         if (emptyCells.size < 2) {
-            // 초기 셀 수정 시도로 대체
-        var initialRow = -1
-        var initialCol = -1
-        for (row in 0..8) {
-            for (col in 0..8) {
-                    if (viewModel.isInitialCell(row, col)) {
-                    initialRow = row
-                    initialCol = col
-                    break
-                }
-            }
-            if (initialRow != -1) break
-        }
-        
-            if (initialRow != -1) {
-        viewModel.selectCell(initialRow, initialCol)
-                viewModel.setCellValue(5)
-        state = viewModel.state.first()
-                assertTrue("초기 셀 수정 시 에러가 발생해야 함", state.showError)
-            }
             return@runTest
         }
         
@@ -1141,6 +1121,43 @@ class SudokuViewModelTest {
         assertFalse("노트에서 숫자 5가 제거되어야 함", state.notes[emptyRow][emptyCol].contains(5))
         assertTrue("노트에 숫자 7은 남아있어야 함", state.notes[emptyRow][emptyCol].contains(7))
         assertEquals("노트에 숫자가 1개만 있어야 함", 1, state.notes[emptyRow][emptyCol].size)
+    }
+
+    @Test
+    fun `초기 셀에 숫자 입력 시도 시 변경되지 않는지 테스트`() = runTest {
+        val viewModel = SudokuViewModel()
+        
+        // 초기 셀 찾기
+        var state = viewModel.state.first()
+        var initialRow = -1
+        var initialCol = -1
+        var initialValue = 0
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (viewModel.isInitialCell(row, col)) {
+                    initialRow = row
+                    initialCol = col
+                    initialValue = state.board[row][col]
+                    break
+                }
+            }
+            if (initialRow != -1) break
+        }
+        
+        assertTrue("초기 셀이 존재해야 함", initialRow != -1)
+        
+        // 초기 셀 선택 후 다른 숫자 입력 시도
+        viewModel.selectCell(initialRow, initialCol)
+        val newValue = if (initialValue == 1) 2 else 1
+        viewModel.setCellValue(newValue)
+        
+        state = viewModel.state.first()
+        // 요구사항: 초기 셀은 변경할 수 없음
+        assertEquals("초기 셀 값이 변경되지 않아야 함", initialValue, state.board[initialRow][initialCol])
+        // 에러도 발생하지 않아야 함 (단순히 무시됨)
+        assertFalse("에러가 발생하지 않아야 함", state.showError)
+        // 초기 셀 상태도 유지되어야 함
+        assertTrue("초기 셀 상태가 유지되어야 함", viewModel.isInitialCell(initialRow, initialCol))
     }
 
     @Test
