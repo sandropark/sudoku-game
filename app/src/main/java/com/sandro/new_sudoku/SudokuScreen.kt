@@ -141,8 +141,7 @@ fun SudokuScreen(
             mistakeCount = state.mistakeCount,
             hintsUsed = 0, // 힌트 기능이 추가되면 수정
             onNewGame = { viewModel.startNewGameFromComplete() },
-            onMainMenu = { viewModel.goToMainFromComplete() },
-            onDismiss = { viewModel.closeGameCompleteDialog() }
+            onMainMenu = { viewModel.goToMainFromComplete() }
         )
     }
 }
@@ -392,11 +391,10 @@ fun GameCompleteDialog(
     mistakeCount: Int,
     hintsUsed: Int,
     onNewGame: () -> Unit,
-    onMainMenu: () -> Unit,
-    onDismiss: () -> Unit
+    onMainMenu: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { }, // 닫기 버튼 제거로 인해 외부 클릭으로 닫히지 않도록 함
         title = {
             Text(
                 text = "🎉 축하합니다!",
@@ -488,14 +486,7 @@ fun GameCompleteDialog(
                     Text("메인 메뉴", fontSize = 16.sp)
                 }
 
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("game_complete_close_btn")
-                ) {
-                    Text("닫기", fontSize = 16.sp)
-                }
+
             }
         },
         dismissButton = { }, // No explicit dismiss button

@@ -132,8 +132,8 @@ class TestSolveButtonUITest {
         // 게임이 완료되었는지 확인
         assert(viewModel.state.value.isGameComplete) { "게임이 완료되어야 함" }
 
-        // 완료 다이얼로그 닫기
-        composeTestRule.onNodeWithTag("game_complete_close_btn").performClick()
+        // 완료 다이얼로그에서 메인 메뉴로 이동
+        composeTestRule.onNodeWithTag("game_complete_main_menu_btn").performClick()
         composeTestRule.waitForIdle()
 
         // 두 번째 정답 입력 시도 (이미 완료된 게임)

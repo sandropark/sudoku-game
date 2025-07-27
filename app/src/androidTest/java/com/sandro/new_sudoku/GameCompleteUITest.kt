@@ -124,54 +124,6 @@ class GameCompleteUITest {
         assert(finalState.shouldNavigateToMain) { "메인 네비게이션 플래그가 설정되어야 함" }
     }
 
-    @Test
-    fun testGameCompleteDialogCloseButton() {
-        composeTestRule.setContent {
-            viewModel = SudokuViewModel()
-            SudokuScreen(viewModel = viewModel, onBackToMain = {})
-        }
-
-        // 게임 완료
-        viewModel.solveGame()
-        composeTestRule.waitForIdle()
-
-        // 게임 완료 다이얼로그 확인
-        composeTestRule.onNodeWithTag("game_complete_dialog").assertIsDisplayed()
-
-        // 닫기 버튼 클릭
-        composeTestRule.onNodeWithTag("game_complete_close_btn").performClick()
-        composeTestRule.waitForIdle()
-
-        // 다이얼로그가 닫혔는지 확인
-        composeTestRule.onNodeWithTag("game_complete_dialog").assertDoesNotExist()
-
-        val finalState = viewModel.state.value
-        assert(!finalState.showGameCompleteDialog) { "완료 다이얼로그가 닫혀야 함" }
-        assert(finalState.isGameComplete) { "게임 완료 상태는 유지되어야 함" }
-    }
-
-    @Test
-    fun testGameCompleteDialogDismiss() {
-        composeTestRule.setContent {
-            viewModel = SudokuViewModel()
-            SudokuScreen(viewModel = viewModel, onBackToMain = {})
-        }
-
-        // 게임 완료
-        viewModel.solveGame()
-        composeTestRule.waitForIdle()
-
-        // 게임 완료 다이얼로그 확인
-        composeTestRule.onNodeWithTag("game_complete_dialog").assertIsDisplayed()
-
-        // 다이얼로그 외부 클릭으로 닫기 (onDismissRequest)
-        // Note: Compose UI 테스트에서는 onDismissRequest를 직접 테스트하기 어려우므로 닫기 버튼으로 대체
-        composeTestRule.onNodeWithTag("game_complete_close_btn").performClick()
-        composeTestRule.waitForIdle()
-
-        // 다이얼로그가 닫혔는지 확인
-        composeTestRule.onNodeWithTag("game_complete_dialog").assertDoesNotExist()
-    }
 
     @Test
     fun testRealPuzzleCompletionShowsDialog() {

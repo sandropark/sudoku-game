@@ -105,22 +105,6 @@ class GameCompleteTest {
         assertFalse("완료시 타이머가 정지되어야 함", finalState.isTimerRunning)
     }
 
-    @Test
-    fun `게임 완료 다이얼로그 닫기시 다이얼로그만 닫혀야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
-
-        // 게임 완료
-        viewModel.solveGame()
-        assertTrue("완료 다이얼로그가 표시되어야 함", viewModel.state.value.showGameCompleteDialog)
-
-        // 다이얼로그 닫기
-        viewModel.closeGameCompleteDialog()
-
-        val finalState = viewModel.state.value
-        assertFalse("다이얼로그 닫기시 완료 다이얼로그가 닫혀야 함", finalState.showGameCompleteDialog)
-        assertTrue("다이얼로그 닫기시에도 게임 완료 상태는 유지되어야 함", finalState.isGameComplete)
-    }
 
     @Test
     fun `실제 퍼즐 완성시에도 완료 다이얼로그가 표시되어야 한다`() {
