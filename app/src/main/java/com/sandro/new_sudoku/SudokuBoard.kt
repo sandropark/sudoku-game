@@ -40,6 +40,8 @@ fun SudokuBoard(
     notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } },
     isNoteMode: Boolean = false,
     highlightedCells: Set<Pair<Int, Int>> = emptySet(),
+    highlightedRows: Set<Int> = emptySet(),
+    highlightedCols: Set<Int> = emptySet(),
     onCellClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -83,6 +85,8 @@ fun SudokuBoard(
                             isInitial = isInitial,
                             isInvalid = isInvalid,
                             isHighlighted = highlightedCells.contains(Pair(row, col)),
+                            isRowHighlighted = highlightedRows.contains(row),
+                            isColHighlighted = highlightedCols.contains(col),
                             notes = cellNotes,
                             isNoteMode = isNoteMode,
                             onClick = { onCellClick(row, col) },
@@ -104,6 +108,8 @@ fun SudokuCell(
     isInitial: Boolean,
     isInvalid: Boolean,
     isHighlighted: Boolean = false,
+    isRowHighlighted: Boolean = false,
+    isColHighlighted: Boolean = false,
     notes: Set<Int> = emptySet(),
     isNoteMode: Boolean = false,
     onClick: () -> Unit,
@@ -111,14 +117,16 @@ fun SudokuCell(
     isEvenBox: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = remember(isSelected, isHighlighted, isEvenBox) {
-        when {
-            isSelected -> Color.Blue.copy(alpha = 0.3f)
-            isHighlighted -> Color.Yellow.copy(alpha = 0.2f)
-            isEvenBox -> Color.Gray.copy(alpha = 0.1f)
-            else -> Color.White
+    val backgroundColor =
+        remember(isSelected, isHighlighted, isRowHighlighted, isColHighlighted, isEvenBox) {
+            when {
+                isSelected -> Color.Blue.copy(alpha = 0.3f)
+                isHighlighted -> Color.Yellow.copy(alpha = 0.2f)
+                isRowHighlighted || isColHighlighted -> Color.Blue.copy(alpha = 0.1f)
+                isEvenBox -> Color.Gray.copy(alpha = 0.1f)
+                else -> Color.White
+            }
         }
-    }
 
     val textColor = remember(isInitial, value, isInvalid) {
         when {

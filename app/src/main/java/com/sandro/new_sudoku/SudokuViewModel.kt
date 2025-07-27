@@ -30,7 +30,9 @@ data class SudokuState(
     val isTimerRunning: Boolean = false,
     val showGameCompleteDialog: Boolean = false, // 게임 완료 다이얼로그 표시 여부
     val highlightedNumber: Int = 0, // 하이라이트된 숫자 (0이면 없음)
-    val highlightedCells: Set<Pair<Int, Int>> = emptySet() // 하이라이트된 셀들
+    val highlightedCells: Set<Pair<Int, Int>> = emptySet(), // 하이라이트된 셀들
+    val highlightedRows: Set<Int> = emptySet(), // 하이라이트된 행들
+    val highlightedCols: Set<Int> = emptySet() // 하이라이트된 열들
 )
 
 class SudokuViewModel : ViewModel() {
@@ -104,6 +106,8 @@ class SudokuViewModel : ViewModel() {
                 showError = false,
                 highlightedNumber = selectedNumber,
                 highlightedCells = highlightedCells,
+                highlightedRows = setOf(row),
+                highlightedCols = setOf(col),
                 recalculateInvalidCells = false
             )
         }
@@ -170,6 +174,8 @@ class SudokuViewModel : ViewModel() {
         showGameCompleteDialog: Boolean? = null,
         highlightedNumber: Int? = null,
         highlightedCells: Set<Pair<Int, Int>>? = null,
+        highlightedRows: Set<Int>? = null,
+        highlightedCols: Set<Int>? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -195,7 +201,9 @@ class SudokuViewModel : ViewModel() {
             isTimerRunning = isTimerRunning ?: currentState.isTimerRunning,
             showGameCompleteDialog = showGameCompleteDialog ?: currentState.showGameCompleteDialog,
             highlightedNumber = highlightedNumber ?: currentState.highlightedNumber,
-            highlightedCells = highlightedCells ?: currentState.highlightedCells
+            highlightedCells = highlightedCells ?: currentState.highlightedCells,
+            highlightedRows = highlightedRows ?: currentState.highlightedRows,
+            highlightedCols = highlightedCols ?: currentState.highlightedCols
         )
     }
 
@@ -746,7 +754,9 @@ class SudokuViewModel : ViewModel() {
             selectedRow = -1,
             selectedCol = -1,
             highlightedNumber = 0,
-            highlightedCells = emptySet()
+            highlightedCells = emptySet(),
+            highlightedRows = emptySet(),
+            highlightedCols = emptySet()
         )
     }
 
