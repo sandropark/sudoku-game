@@ -86,6 +86,7 @@ fun SudokuScreen(
                 invalidCells = state.invalidCells,
                 notes = state.notes,
                 isNoteMode = state.isNoteMode,
+                highlightedCells = state.highlightedCells,
                 onCellClick = { row, col -> viewModel.selectCell(row, col) },
                 modifier = Modifier
                     .fillMaxWidth()

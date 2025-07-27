@@ -28,7 +28,9 @@ data class SudokuState(
     val shouldNavigateToMain: Boolean = false,
     val elapsedTimeSeconds: Int = 0,
     val isTimerRunning: Boolean = false,
-    val showGameCompleteDialog: Boolean = false // 게임 완료 다이얼로그 표시 여부
+    val showGameCompleteDialog: Boolean = false, // 게임 완료 다이얼로그 표시 여부
+    val highlightedNumber: Int = 0, // 하이라이트된 숫자 (0이면 없음)
+    val highlightedCells: Set<Pair<Int, Int>> = emptySet() // 하이라이트된 셀들
 )
 
 class SudokuViewModel : ViewModel() {
@@ -78,12 +80,37 @@ class SudokuViewModel : ViewModel() {
 
     fun selectCell(row: Int, col: Int) {
         if (row in 0..8 && col in 0..8) {
+            val currentBoard = _state.value.board
+            val selectedNumber = currentBoard[row][col]
+
+            // 선택된 셀의 숫자와 같은 숫자들을 찾아서 하이라이트
+            val highlightedCells = if (selectedNumber != 0) {
+                buildSet {
+                    for (r in 0..8) {
+                        for (c in 0..8) {
+                            if (currentBoard[r][c] == selectedNumber) {
+                                add(Pair(r, c))
+                            }
+                        }
+                    }
+                }
+            } else {
+                emptySet()
+            }
+
             updateState(
                 selectedRow = row,
                 selectedCol = col,
                 showError = false,
+                highlightedNumber = selectedNumber,
+                highlightedCells = highlightedCells,
                 recalculateInvalidCells = false
             )
+        }
+
+        // 처음 게임 화면 진입 시 타이머 자동 시작 (한 번만, 테스트 모드가 아닐 때만)
+        if (!isTestMode && !_state.value.isTimerRunning && _state.value.elapsedTimeSeconds == 0) {
+            startTimer()
         }
     }
 
@@ -141,6 +168,8 @@ class SudokuViewModel : ViewModel() {
         elapsedTimeSeconds: Int? = null,
         isTimerRunning: Boolean? = null,
         showGameCompleteDialog: Boolean? = null,
+        highlightedNumber: Int? = null,
+        highlightedCells: Set<Pair<Int, Int>>? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -164,7 +193,9 @@ class SudokuViewModel : ViewModel() {
             shouldNavigateToMain = shouldNavigateToMain ?: currentState.shouldNavigateToMain,
             elapsedTimeSeconds = elapsedTimeSeconds ?: currentState.elapsedTimeSeconds,
             isTimerRunning = isTimerRunning ?: currentState.isTimerRunning,
-            showGameCompleteDialog = showGameCompleteDialog ?: currentState.showGameCompleteDialog
+            showGameCompleteDialog = showGameCompleteDialog ?: currentState.showGameCompleteDialog,
+            highlightedNumber = highlightedNumber ?: currentState.highlightedNumber,
+            highlightedCells = highlightedCells ?: currentState.highlightedCells
         )
     }
 
@@ -707,6 +738,16 @@ class SudokuViewModel : ViewModel() {
     // 테스트용 메서드
     fun updateTimerForTest(seconds: Int) {
         _state.value = _state.value.copy(elapsedTimeSeconds = seconds)
+    }
+
+    // 셀 선택 해제
+    fun clearSelection() {
+        _state.value = _state.value.copy(
+            selectedRow = -1,
+            selectedCol = -1,
+            highlightedNumber = 0,
+            highlightedCells = emptySet()
+        )
     }
 
     // ViewModel 정리 시 메모리 해제

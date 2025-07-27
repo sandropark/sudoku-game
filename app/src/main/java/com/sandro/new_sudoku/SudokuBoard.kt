@@ -39,6 +39,7 @@ fun SudokuBoard(
     invalidCells: Set<Pair<Int, Int>>,
     notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } },
     isNoteMode: Boolean = false,
+    highlightedCells: Set<Pair<Int, Int>> = emptySet(),
     onCellClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -49,7 +50,7 @@ fun SudokuBoard(
         val cellSize = remember(maxWidth, maxHeight) {
             (maxWidth / 9f).coerceAtMost(maxHeight / 9f)
         }
-        
+
         // 박스 인덱스 계산을 최적화
         val boxIndices = remember {
             Array(9) { row ->
@@ -58,7 +59,7 @@ fun SudokuBoard(
                 }
             }
         }
-        
+
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -81,6 +82,7 @@ fun SudokuBoard(
                             isSelected = isSelected,
                             isInitial = isInitial,
                             isInvalid = isInvalid,
+                            isHighlighted = highlightedCells.contains(Pair(row, col)),
                             notes = cellNotes,
                             isNoteMode = isNoteMode,
                             onClick = { onCellClick(row, col) },
@@ -101,6 +103,7 @@ fun SudokuCell(
     isSelected: Boolean,
     isInitial: Boolean,
     isInvalid: Boolean,
+    isHighlighted: Boolean = false,
     notes: Set<Int> = emptySet(),
     isNoteMode: Boolean = false,
     onClick: () -> Unit,
@@ -108,14 +111,15 @@ fun SudokuCell(
     isEvenBox: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = remember(isSelected, isEvenBox) {
+    val backgroundColor = remember(isSelected, isHighlighted, isEvenBox) {
         when {
             isSelected -> Color.Blue.copy(alpha = 0.3f)
+            isHighlighted -> Color.Yellow.copy(alpha = 0.2f)
             isEvenBox -> Color.Gray.copy(alpha = 0.1f)
             else -> Color.White
         }
     }
-    
+
     val textColor = remember(isInitial, value, isInvalid) {
         when {
             isInitial -> Color.Black
@@ -124,14 +128,14 @@ fun SudokuCell(
             else -> Color.Blue
         }
     }
-    
+
     val textWeight = remember(isInitial) {
         if (isInitial) FontWeight.Bold else FontWeight.Normal
     }
-    
+
     val hasNotes = remember(notes) { notes.isNotEmpty() }
     val hasValue = remember(value) { value != 0 }
-    
+
     // 접근성을 위한 contentDescription 생성
     val contentDescription = remember(value, isSelected, isInitial, isInvalid, hasNotes, notes) {
         buildString {
@@ -140,17 +144,19 @@ fun SudokuCell(
                     append("노트 셀, 후보 숫자: ")
                     append(notes.sorted().joinToString(", "))
                 }
+
                 hasValue -> {
                     append("숫자 셀, 값: $value")
                     if (isInitial) append(", 초기 숫자")
                     if (isInvalid) append(", 잘못된 숫자")
                 }
+
                 else -> append("빈 셀")
             }
             if (isSelected) append(", 선택됨")
         }
     }
-    
+
     Box(
         modifier = modifier
             .size(cellSize)
@@ -210,7 +216,7 @@ private fun NotesGrid(
                     for (noteCol in 0..2) {
                         val noteNum = remember(noteRow, noteCol) { noteRow * 3 + noteCol + 1 }
                         val isVisible = remember(notes, noteNum) { notes.contains(noteNum) }
-                        
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -226,7 +232,9 @@ private fun NotesGrid(
                                     textAlign = TextAlign.Center,
                                     lineHeight = (cellSize.value * 0.18f).coerceAtLeast(7f).sp,
                                     style = androidx.compose.ui.text.TextStyle(
-                                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+                                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                            includeFontPadding = false
+                                        )
                                     ),
                                     modifier = Modifier.testTag("note_${noteNum}")
                                 )
