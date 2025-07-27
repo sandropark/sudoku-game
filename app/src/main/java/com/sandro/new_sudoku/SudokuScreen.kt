@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,80 +62,88 @@ fun SudokuScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .padding(16.dp)
     ) {
-        TopBar(onBackClick = onBackToMain)
         StatusBar(
             mistakeCount = state.mistakeCount,
             elapsedTimeSeconds = state.elapsedTimeSeconds,
             formatTime = viewModel::formatTime
         )
 
-        Spacer(Modifier.height(8.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center
+        Spacer(modifier = Modifier.height(16.dp))
+
+        key(
+            state.notes.hashCode(),
+            state.board.hashCode(),
+            state.selectedRow,
+            state.selectedCol
         ) {
-            key(
-                state.notes.hashCode(),
-                state.board.hashCode(),
-                state.selectedRow,
-                state.selectedCol
-            ) {
-                SudokuBoard(
-                    board = state.board,
-                    isInitialCells = state.isInitialCells,
-                    selectedRow = state.selectedRow,
-                    selectedCol = state.selectedCol,
-                    invalidCells = state.invalidCells,
-                    notes = state.notes,
-                    isNoteMode = state.isNoteMode,
-                    onCellClick = { row, col ->
-                        viewModel.selectCell(row, col)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .testTag("sudoku_board")
-                )
-            }
+            SudokuBoard(
+                board = state.board,
+                selectedRow = state.selectedRow,
+                selectedCol = state.selectedCol,
+                isInitialCells = state.isInitialCells,
+                invalidCells = state.invalidCells,
+                notes = state.notes,
+                isNoteMode = state.isNoteMode,
+                onCellClick = { row, col -> viewModel.selectCell(row, col) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .testTag("sudoku_board")
+            )
         }
-        Spacer(Modifier.height(8.dp))
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         ActionBar(viewModel)
-        Spacer(Modifier.height(8.dp))
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         NumberPad(
             isNoteMode = state.isNoteMode,
-            onNumberClick = { number ->
-                viewModel.setCellValue(number)
-            },
-            onNoteNumberClick = { number ->
-                viewModel.addNoteNumber(number)
-            },
-            onClearClick = {
-                viewModel.clearCell()
-            },
+            onNumberClick = { number -> viewModel.setCellValue(number) },
+            onNoteNumberClick = { number -> viewModel.addNoteNumber(number) },
+            onClearClick = { viewModel.clearCell() },
             modifier = Modifier.testTag("number_pad")
         )
-        Spacer(Modifier.height(8.dp))
 
-        // Game Over Popup
-        if (state.showGameOverDialog) {
-            GameOverDialog(
-                onContinue = { viewModel.continueGameAfterMistakes() },
-                onNewGame = { viewModel.requestNewGameOptions() } // 수정: 재시작 옵션 팝업 표시
+        if (state.showError) {
+            Text(
+                text = state.errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
             )
         }
+    }
 
-        // Restart Options Popup (새로 추가)
-        if (state.showRestartOptionsDialog) {
-            RestartOptionsDialog(
-                onRetry = { viewModel.retryCurrentGame() },
-                onChangeDifficulty = { viewModel.changeDifficultyAndRestart() },
-                onCancel = { viewModel.cancelRestartOptions() }
-            )
-        }
+    // 게임 오버 팝업
+    if (state.showGameOverDialog) {
+        GameOverDialog(
+            onContinue = { viewModel.continueGameAfterMistakes() },
+            onNewGame = { viewModel.requestNewGameOptions() }
+        )
+    }
+
+    // 재시작 옵션 팝업
+    if (state.showRestartOptionsDialog) {
+        RestartOptionsDialog(
+            onRetry = { viewModel.retryCurrentGame() },
+            onChangeDifficulty = { viewModel.changeDifficultyAndRestart() },
+            onCancel = { viewModel.cancelRestartOptions() }
+        )
+    }
+
+    // 게임 완료 팝업
+    if (state.showGameCompleteDialog) {
+        GameCompleteDialog(
+            elapsedTime = viewModel.formatTime(state.elapsedTimeSeconds),
+            mistakeCount = state.mistakeCount,
+            hintsUsed = 0, // 힌트 기능이 추가되면 수정
+            onNewGame = { viewModel.startNewGameFromComplete() },
+            onMainMenu = { viewModel.goToMainFromComplete() },
+            onDismiss = { viewModel.closeGameCompleteDialog() }
+        )
     }
 }
 
@@ -364,5 +375,122 @@ fun RestartOptionsDialog(
         },
         dismissButton = { }, // No explicit dismiss button
         modifier = Modifier.testTag("restart_options_dialog")
+    )
+}
+
+@Composable
+fun GameCompleteDialog(
+    elapsedTime: String,
+    mistakeCount: Int,
+    hintsUsed: Int,
+    onNewGame: () -> Unit,
+    onMainMenu: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "🎉 축하합니다!",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "퍼즐을 완료했습니다!",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    HorizontalDivider()
+
+                    // 통계 정보
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("소요 시간:", fontWeight = FontWeight.Medium)
+                        Text(elapsedTime, color = MaterialTheme.colorScheme.primary)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("실수 횟수:", fontWeight = FontWeight.Medium)
+                        Text(
+                            "$mistakeCount 회",
+                            color = if (mistakeCount == 0) Color.Green else MaterialTheme.colorScheme.secondary
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("힌트 사용:", fontWeight = FontWeight.Medium)
+                        Text(
+                            "$hintsUsed 회",
+                            color = if (hintsUsed == 0) Color.Green else MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = onNewGame,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("game_complete_new_game_btn"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("새 게임", fontSize = 16.sp)
+                }
+
+                Button(
+                    onClick = onMainMenu,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("game_complete_main_menu_btn"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("메인 메뉴", fontSize = 16.sp)
+                }
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("game_complete_close_btn")
+                ) {
+                    Text("닫기", fontSize = 16.sp)
+                }
+            }
+        },
+        dismissButton = { }, // No explicit dismiss button
+        modifier = Modifier.testTag("game_complete_dialog")
     )
 } 

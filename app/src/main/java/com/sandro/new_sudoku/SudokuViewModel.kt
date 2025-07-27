@@ -27,7 +27,8 @@ data class SudokuState(
     val showRestartOptionsDialog: Boolean = false,
     val shouldNavigateToMain: Boolean = false,
     val elapsedTimeSeconds: Int = 0,
-    val isTimerRunning: Boolean = false
+    val isTimerRunning: Boolean = false,
+    val showGameCompleteDialog: Boolean = false // 게임 완료 다이얼로그 표시 여부
 )
 
 class SudokuViewModel : ViewModel() {
@@ -139,6 +140,7 @@ class SudokuViewModel : ViewModel() {
         shouldNavigateToMain: Boolean? = null,
         elapsedTimeSeconds: Int? = null,
         isTimerRunning: Boolean? = null,
+        showGameCompleteDialog: Boolean? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -161,7 +163,8 @@ class SudokuViewModel : ViewModel() {
                 ?: currentState.showRestartOptionsDialog,
             shouldNavigateToMain = shouldNavigateToMain ?: currentState.shouldNavigateToMain,
             elapsedTimeSeconds = elapsedTimeSeconds ?: currentState.elapsedTimeSeconds,
-            isTimerRunning = isTimerRunning ?: currentState.isTimerRunning
+            isTimerRunning = isTimerRunning ?: currentState.isTimerRunning,
+            showGameCompleteDialog = showGameCompleteDialog ?: currentState.showGameCompleteDialog
         )
     }
 
@@ -211,11 +214,21 @@ class SudokuViewModel : ViewModel() {
             }
         }
 
+        // 게임 완료 확인
+        val gameComplete = game.isGameComplete()
+
+        // 게임 완료시 타이머 정지 및 완료 다이얼로그 표시
+        if (gameComplete && !currentState.isGameComplete) {
+            stopTimer()
+        }
+
         updateState(
             board = game.getBoard(),
             notes = newNotes,
             mistakeCount = newMistakeCount,
-            showGameOverDialog = showGameOverDialog
+            showGameOverDialog = showGameOverDialog,
+            isGameComplete = gameComplete,
+            showGameCompleteDialog = if (gameComplete && !currentState.isGameComplete) true else null
         )
     }
 
@@ -306,7 +319,7 @@ class SudokuViewModel : ViewModel() {
     fun solveGame() {
         game.solveGame()
         stopTimer() // 게임 완료 시 타이머 정지
-        updateState(isGameComplete = true)
+        updateState(isGameComplete = true, showGameCompleteDialog = true)
     }
 
     fun clearBoard() {
@@ -535,8 +548,55 @@ class SudokuViewModel : ViewModel() {
 
     // 네비게이션 상태 초기화
     fun resetNavigationState() {
+        _state.value = _state.value.copy(shouldNavigateToMain = false)
+    }
+
+    // 게임 완료 다이얼로그에서 새 게임 시작
+    fun startNewGameFromComplete() {
+        // 기존 타이머 정리
+        stopTimer()
+
+        game.generateNewGame()
+        val newBoard = game.getBoard()
+        val newInitialCells =
+            Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
+
+        // 초기 상태 저장 (재시도용)
+        saveInitialState(newBoard, newInitialCells)
+
+        undoStack.clear()
+
+        _state.value = SudokuState(
+            board = newBoard,
+            isInitialCells = newInitialCells,
+            selectedRow = -1,
+            selectedCol = -1,
+            isGameComplete = false,
+            showError = false,
+            invalidCells = calculateInvalidCells(),
+            mistakeCount = 0,
+            isGameOver = false,
+            showGameOverDialog = false,
+            showRestartOptionsDialog = false,
+            shouldNavigateToMain = false,
+            elapsedTimeSeconds = 0,
+            isTimerRunning = false,
+            showGameCompleteDialog = false
+        )
+    }
+
+    // 게임 완료 다이얼로그에서 메인으로 이동
+    fun goToMainFromComplete() {
         _state.value = _state.value.copy(
-            shouldNavigateToMain = false
+            showGameCompleteDialog = false,
+            shouldNavigateToMain = true
+        )
+    }
+
+    // 게임 완료 다이얼로그 닫기
+    fun closeGameCompleteDialog() {
+        _state.value = _state.value.copy(
+            showGameCompleteDialog = false
         )
     }
 
