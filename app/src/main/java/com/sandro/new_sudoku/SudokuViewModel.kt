@@ -600,6 +600,48 @@ class SudokuViewModel : ViewModel() {
         )
     }
 
+    // 테스트용: 정답을 모두 입력하는 메서드
+    fun fillCorrectAnswers() {
+        val currentState = _state.value
+
+        // 이미 게임이 완료된 경우 아무것도 하지 않음
+        if (currentState.isGameComplete) {
+            return
+        }
+
+        // 현재 게임을 해결하여 정답 보드 얻기
+        game.solveGame()
+        val solution = game.getBoard()
+
+        // 빈 셀들만 정답으로 채우기 (초기 셀은 건드리지 않음)
+        val newBoard = Array(9) { row ->
+            IntArray(9) { col ->
+                if (game.isInitialCell(row, col)) {
+                    // 초기 셀은 그대로 유지
+                    currentState.board[row][col]
+                } else {
+                    // 빈 셀은 정답으로 채우기
+                    solution[row][col]
+                }
+            }
+        }
+
+        // 타이머 정지
+        stopTimer()
+
+        // 상태 업데이트: 게임 완료, 다이얼로그 표시
+        _state.value = _state.value.copy(
+            board = newBoard,
+            isGameComplete = true,
+            selectedRow = -1,
+            selectedCol = -1,
+            showError = false,
+            invalidCells = emptySet(),
+            showGameCompleteDialog = true,
+            notes = Array(9) { Array(9) { emptySet() } } // 노트 초기화
+        )
+    }
+
     // ===== 타이머 관련 메서드들 =====
 
     fun startTimer() {

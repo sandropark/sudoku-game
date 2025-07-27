@@ -41,6 +41,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -132,7 +133,8 @@ tasks.register<JacocoReport>("jacocoCombinedReport") {
 tasks.register("uiTestReport") {
     dependsOn("connectedDebugAndroidTest")
     doLast {
-        val reportFile = file("${layout.buildDirectory}/reports/androidTests/connected/debug/index.html")
+        val reportFile =
+            file("${layout.buildDirectory}/reports/androidTests/connected/debug/index.html")
         if (reportFile.exists()) {
             println("✅ UI 테스트 리포트 생성 완료: ${reportFile.absolutePath}")
             println("🌐 브라우저에서 확인: file://${reportFile.absolutePath}")
@@ -157,14 +159,14 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
+
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
-    
+
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
-    
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

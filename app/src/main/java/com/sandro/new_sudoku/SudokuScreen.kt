@@ -213,6 +213,14 @@ fun ActionBar(viewModel: SudokuViewModel) {
             onClick = { viewModel.toggleNoteMode() }
         )
         ActionButton("힌트", badgeCount = 1)
+
+        // 테스트용 버튼 - 디버그 빌드에서만 표시
+        if (BuildConfig.DEBUG) {
+            ActionButton(
+                "🎯정답",
+                testTag = "action_btn_정답입력",
+                onClick = { viewModel.fillCorrectAnswers() })
+        }
     }
 }
 
