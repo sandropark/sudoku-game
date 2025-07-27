@@ -107,12 +107,8 @@ fun TopBar() {
             // 아이콘은 실제 프로젝트에 맞게 교체
             Text("←", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
         }
-        // 팔레트(테마)
-        Box(Modifier.size(32.dp)) {
-            Text("🎨", fontSize = 18.sp, modifier = Modifier.align(Alignment.Center))
-        }
         Spacer(Modifier.weight(1f))
-        Text("데일리 챌린지", style = MaterialTheme.typography.titleMedium)
+        Text("스도쿠", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.weight(1f))
         // 설정
         Box(Modifier.size(32.dp)) {
@@ -129,12 +125,9 @@ fun StatusBar() {
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        Text("전문가")
         Text("실수: 0")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("🏆", fontSize = 14.sp)
-            Text(" 11월.22")
-        }
-        Text("00:21")
+        Text("00:21") // 타이머
     }
 }
 
@@ -155,8 +148,6 @@ fun ActionBar(viewModel: SudokuViewModel) {
             onClick = { viewModel.toggleNoteMode() }
         )
         ActionButton("힌트", badgeCount = 1)
-        ActionButton("새 게임", testTag = "action_btn_새게임", onClick = { viewModel.newGame() })
-        ActionButton("해답 보기", testTag = "action_btn_해답보기", onClick = { viewModel.solveGame() })
     }
 }
 
