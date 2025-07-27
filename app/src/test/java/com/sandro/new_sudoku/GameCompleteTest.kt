@@ -27,9 +27,12 @@ class GameCompleteTest {
     }
 
     @Test
-    fun `완료 다이얼로그에서 새 게임 선택시 새 게임이 시작되어야 한다`() {
+    fun `완료 다이얼로그에서 다시하기 선택시 현재 게임이 재시작되어야 한다`() {
         val viewModel = SudokuViewModel()
         viewModel.isTestMode = true
+
+        // 초기 보드 상태 저장
+        val initialBoard = viewModel.state.value.board.map { it.clone() }.toTypedArray()
 
         // 타이머 시작 및 시간 설정
         viewModel.updateTimerForTest(180) // 3분
@@ -39,14 +42,27 @@ class GameCompleteTest {
         viewModel.solveGame()
         assertTrue("완료 다이얼로그가 표시되어야 함", viewModel.state.value.showGameCompleteDialog)
 
-        // 새 게임 선택
-        viewModel.startNewGameFromComplete()
+        // 다시하기 선택
+        viewModel.retryCurrentGame()
 
         val finalState = viewModel.state.value
-        assertFalse("새 게임 시작시 완료 다이얼로그가 닫혀야 함", finalState.showGameCompleteDialog)
-        assertFalse("새 게임 시작시 게임 완료 상태가 아니어야 함", finalState.isGameComplete)
-        assertEquals("새 게임 시작시 타이머가 0으로 초기화되어야 함", 0, finalState.elapsedTimeSeconds)
-        assertFalse("새 게임 시작시 타이머가 정지 상태여야 함", finalState.isTimerRunning)
+        assertFalse("다시하기 시 완료 다이얼로그가 닫혀야 함", finalState.showGameCompleteDialog)
+        assertFalse("다시하기 시 게임 완료 상태가 해제되어야 함", finalState.isGameComplete)
+        assertEquals("다시하기 시 타이머가 0으로 초기화되어야 함", 0, finalState.elapsedTimeSeconds)
+        assertTrue("다시하기 시 타이머가 자동으로 시작되어야 함", finalState.isTimerRunning)
+
+        // 초기 보드와 동일한지 확인 (같은 게임 다시 시작)
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (viewModel.isInitialCell(row, col)) {
+                    assertEquals(
+                        "다시하기 시 초기 셀은 원래 게임과 동일해야 함",
+                        initialBoard[row][col],
+                        finalState.board[row][col]
+                    )
+                }
+            }
+        }
     }
 
     @Test

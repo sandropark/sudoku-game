@@ -31,6 +31,7 @@ class RestartOptionTest {
     @Test
     fun `재시도 선택시 같은 보드로 게임이 재시작되어야 한다`() = runTest {
         val viewModel = SudokuViewModel()
+        viewModel.isTestMode = true
 
         // 초기 보드 상태 저장
         val originalBoard = viewModel.state.value.board.map { it.clone() }.toTypedArray()

@@ -140,7 +140,7 @@ fun SudokuScreen(
             elapsedTime = viewModel.formatTime(state.elapsedTimeSeconds),
             mistakeCount = state.mistakeCount,
             hintsUsed = 0, // 힌트 기능이 추가되면 수정
-            onNewGame = { viewModel.startNewGameFromComplete() },
+            onRetry = { viewModel.retryCurrentGame() },
             onMainMenu = { viewModel.goToMainFromComplete() }
         )
     }
@@ -390,7 +390,7 @@ fun GameCompleteDialog(
     elapsedTime: String,
     mistakeCount: Int,
     hintsUsed: Int,
-    onNewGame: () -> Unit,
+    onRetry: () -> Unit,
     onMainMenu: () -> Unit
 ) {
     AlertDialog(
@@ -463,15 +463,15 @@ fun GameCompleteDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    onClick = onNewGame,
+                    onClick = onRetry,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("game_complete_new_game_btn"),
+                        .testTag("game_complete_retry_btn"),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("새 게임", fontSize = 16.sp)
+                    Text("다시하기", fontSize = 16.sp)
                 }
 
                 Button(

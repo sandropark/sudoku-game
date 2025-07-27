@@ -514,8 +514,9 @@ class SudokuViewModel : ViewModel() {
                 isTimerRunning = false
             )
 
-            // 재시도 시 타이머 리셋
+            // 재시도 시 타이머 리셋 후 자동 시작
             resetTimer()
+            startTimer()
         }
     }
 

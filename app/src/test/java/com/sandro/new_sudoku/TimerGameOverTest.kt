@@ -88,7 +88,7 @@ class TimerGameOverTest {
         val finalState = viewModel.state.value
         assertFalse("재시작 옵션 팝업이 닫혀야 함", finalState.showRestartOptionsDialog)
         assertEquals("타이머가 0으로 초기화되어야 함", 0, finalState.elapsedTimeSeconds)
-        assertFalse("재시도 시 타이머는 정지 상태로 시작해야 함", finalState.isTimerRunning)
+        assertTrue("재시도 시 타이머가 자동으로 시작되어야 함", finalState.isTimerRunning)
     }
 
     @Test

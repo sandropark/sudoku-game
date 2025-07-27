@@ -67,7 +67,7 @@ class GameCompleteUITest {
     }
 
     @Test
-    fun testGameCompleteDialogNewGameButton() {
+    fun testGameCompleteDialogRetryButton() {
         composeTestRule.setContent {
             viewModel = SudokuViewModel()
             SudokuScreen(viewModel = viewModel, onBackToMain = {})
@@ -80,17 +80,18 @@ class GameCompleteUITest {
         // 게임 완료 다이얼로그 확인
         composeTestRule.onNodeWithTag("game_complete_dialog").assertIsDisplayed()
 
-        // 새 게임 버튼 클릭
-        composeTestRule.onNodeWithTag("game_complete_new_game_btn").performClick()
+        // 다시하기 버튼 클릭
+        composeTestRule.onNodeWithTag("game_complete_retry_btn").performClick()
         composeTestRule.waitForIdle()
 
-        // 다이얼로그가 닫히고 새 게임이 시작되었는지 확인
+        // 다이얼로그가 닫히고 게임이 재시작되었는지 확인
         composeTestRule.onNodeWithTag("game_complete_dialog").assertDoesNotExist()
 
         val newState = viewModel.state.value
-        assert(!newState.isGameComplete) { "새 게임이 시작되어야 함" }
+        assert(!newState.isGameComplete) { "게임이 재시작되어야 함" }
         assert(!newState.showGameCompleteDialog) { "완료 다이얼로그가 닫혀야 함" }
         assert(newState.elapsedTimeSeconds == 0) { "타이머가 초기화되어야 함" }
+        assert(newState.isTimerRunning) { "다시하기 시 타이머가 자동으로 시작되어야 함" }
     }
 
     @Test
