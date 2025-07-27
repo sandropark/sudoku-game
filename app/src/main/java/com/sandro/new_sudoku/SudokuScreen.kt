@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -48,13 +49,24 @@ fun SudokuScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    // 게임 시작 시 타이머 자동 시작
+    LaunchedEffect(Unit) {
+        if (!state.isTimerRunning && state.elapsedTimeSeconds == 0) {
+            viewModel.startTimer()
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
         TopBar(onBackClick = onBackToMain)
-        StatusBar(mistakeCount = state.mistakeCount)
+        StatusBar(
+            mistakeCount = state.mistakeCount,
+            elapsedTimeSeconds = state.elapsedTimeSeconds,
+            formatTime = viewModel::formatTime
+        )
 
         Spacer(Modifier.height(8.dp))
         Box(
@@ -152,7 +164,15 @@ fun TopBar(onBackClick: () -> Unit = {}) {
 }
 
 @Composable
-fun StatusBar(mistakeCount: Int = 0) {
+fun StatusBar(
+    mistakeCount: Int = 0,
+    elapsedTimeSeconds: Int = 0,
+    formatTime: (Int) -> String = { seconds ->
+        val minutes = seconds / 60
+        val remainingSeconds = seconds % 60
+        String.format("%02d:%02d", minutes, remainingSeconds)
+    }
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -161,7 +181,7 @@ fun StatusBar(mistakeCount: Int = 0) {
     ) {
         Text("전문가")
         Text("실수: $mistakeCount")
-        Text("00:21") // 타이머
+        Text(formatTime(elapsedTimeSeconds)) // 실제 타이머 표시
     }
 }
 

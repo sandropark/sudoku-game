@@ -63,6 +63,7 @@ class GameOverPopupTest {
     @Test
     fun `게임 종료 팝업에서 계속하기 선택시 팝업이 닫히고 게임이 계속되어야 한다`() = runTest {
         val viewModel = SudokuViewModel()
+        viewModel.isTestMode = true // 테스트 모드 활성화
 
         // 더 간단한 방법: 3번의 실수를 여러 셀에서 만들기
         val state = viewModel.state.value

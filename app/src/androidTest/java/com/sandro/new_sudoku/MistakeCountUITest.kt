@@ -36,7 +36,7 @@ class MistakeCountUITest {
         // StatusBar가 표시되는지 확인
         composeTestRule.onNodeWithText("전문가").assertIsDisplayed()
         composeTestRule.onNodeWithText("실수: 0").assertIsDisplayed()
-        composeTestRule.onNodeWithText("00:21").assertIsDisplayed()
+        composeTestRule.onNodeWithText("00:00").assertIsDisplayed() // 타이머 초기값 확인
     }
 
     @Test
