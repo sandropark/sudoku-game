@@ -16,7 +16,9 @@ data class SudokuState(
     val errorMessage: String = "",
     val invalidCells: Set<Pair<Int, Int>> = emptySet(),
     val isNoteMode: Boolean = false,
-    val notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } }
+    val notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } },
+    val mistakeCount: Int = 0,
+    val isGameOver: Boolean = false
 )
 
 class SudokuViewModel : ViewModel() {
@@ -105,6 +107,8 @@ class SudokuViewModel : ViewModel() {
         isGameComplete: Boolean? = null,
         showError: Boolean? = null,
         errorMessage: String? = null,
+        mistakeCount: Int? = null,
+        isGameOver: Boolean? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -119,7 +123,9 @@ class SudokuViewModel : ViewModel() {
             isGameComplete = isGameComplete ?: game.isGameComplete(),
             showError = showError ?: currentState.showError,
             errorMessage = errorMessage ?: currentState.errorMessage,
-            invalidCells = newInvalidCells
+            invalidCells = newInvalidCells,
+            mistakeCount = mistakeCount ?: currentState.mistakeCount,
+            isGameOver = isGameOver ?: currentState.isGameOver
         )
     }
 
@@ -128,11 +134,14 @@ class SudokuViewModel : ViewModel() {
         val row = currentState.selectedRow
         val col = currentState.selectedCol
 
-        if (!isValidCellSelection(row, col) || isInitialCell(row, col)) {
+        if (!isValidCellSelection(row, col) || isInitialCell(row, col) || currentState.isGameOver) {
             return
         }
 
         saveCurrentStateToUndoStack(row, col)
+
+        // 값 입력 전에 유효성 검사
+        val isValidMove = game.isValidMove(row, col, value)
 
         val success = game.setCell(row, col, value)
         if (!success) {
@@ -143,7 +152,23 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = emptySet()
 
-        updateState(board = game.getBoard(), notes = newNotes)
+        // 실수 카운트 업데이트
+        var newMistakeCount = currentState.mistakeCount
+        var isGameOver = currentState.isGameOver
+
+        if (!isValidMove && value != 0) { // 잘못된 값이고 0이 아닌 경우 (지우기가 아닌 경우)
+            newMistakeCount += 1
+            if (newMistakeCount >= 3) {
+                isGameOver = true
+            }
+        }
+
+        updateState(
+            board = game.getBoard(),
+            notes = newNotes,
+            mistakeCount = newMistakeCount,
+            isGameOver = isGameOver
+        )
     }
 
     fun clearCell() {
@@ -185,7 +210,9 @@ class SudokuViewModel : ViewModel() {
             selectedCol = -1,
             isGameComplete = false,
             showError = false,
-            invalidCells = calculateInvalidCells()
+            invalidCells = calculateInvalidCells(),
+            mistakeCount = 0,
+            isGameOver = false
         )
     }
 
@@ -205,7 +232,9 @@ class SudokuViewModel : ViewModel() {
             selectedCol = -1,
             isGameComplete = false,
             showError = false,
-            invalidCells = calculateInvalidCells()
+            invalidCells = calculateInvalidCells(),
+            mistakeCount = 0,
+            isGameOver = false
         )
     }
 
@@ -323,6 +352,10 @@ class SudokuViewModel : ViewModel() {
     // 유틸리티 메서드들
     private fun isValidCellSelection(row: Int, col: Int): Boolean {
         return row != -1 && col != -1
+    }
+
+    fun getCellValue(row: Int, col: Int): Int {
+        return game.getCell(row, col)
     }
 
     // ViewModel 정리 시 메모리 해제

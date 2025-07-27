@@ -47,7 +47,7 @@ fun SudokuScreen(
             .background(Color.White)
     ) {
         TopBar(onBackClick = onBackToMain)
-        StatusBar()
+        StatusBar(mistakeCount = state.mistakeCount)
 
         Spacer(Modifier.height(8.dp))
         Box(
@@ -128,7 +128,7 @@ fun TopBar(onBackClick: () -> Unit = {}) {
 }
 
 @Composable
-fun StatusBar() {
+fun StatusBar(mistakeCount: Int = 0) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -136,7 +136,7 @@ fun StatusBar() {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text("전문가")
-        Text("실수: 0")
+        Text("실수: $mistakeCount")
         Text("00:21") // 타이머
     }
 }
