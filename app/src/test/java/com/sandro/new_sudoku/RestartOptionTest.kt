@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import com.sandro.new_sudoku.ui.DifficultyLevel
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -12,7 +13,7 @@ class RestartOptionTest {
 
     @Test
     fun `게임 종료 후 새 게임 버튼 클릭시 재시작 옵션 팝업이 표시되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 3번의 실수를 만들어서 게임 오버 팝업 표시
         createThreeMistakes(viewModel)
@@ -30,8 +31,7 @@ class RestartOptionTest {
 
     @Test
     fun `재시도 선택시 같은 보드로 게임이 재시작되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 초기 보드 상태 저장
         val originalBoard = viewModel.state.value.board.map { it.clone() }.toTypedArray()
@@ -87,7 +87,7 @@ class RestartOptionTest {
 
     @Test
     fun `난이도 변경 선택시 난이도 선택 팝업이 표시되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 3번의 실수를 만들어서 게임 오버
         createThreeMistakes(viewModel)
@@ -103,7 +103,7 @@ class RestartOptionTest {
 
     @Test
     fun `재시작 옵션 팝업에서 취소시 게임 화면으로 돌아가야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 3번의 실수를 만들어서 게임 오버
         createThreeMistakes(viewModel)
@@ -122,7 +122,7 @@ class RestartOptionTest {
 
     @Test
     fun `초기 게임 상태가 올바르게 저장되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 초기 상태 확인
         viewModel.state.value

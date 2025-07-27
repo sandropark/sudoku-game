@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,8 +10,7 @@ class TimerGameOverTest {
 
     @Test
     fun `실수 3번 시 타이머가 정지되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 상태 수동 설정
         viewModel.updateTimerForTest(30)
@@ -27,8 +27,7 @@ class TimerGameOverTest {
 
     @Test
     fun `게임 오버 팝업에서 계속하기 선택 시 타이머가 재시작되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 상태 확인을 위해 수동으로 설정
         viewModel.updateTimerForTest(30)
@@ -50,7 +49,7 @@ class TimerGameOverTest {
 
     @Test
     fun `게임 오버 팝업에서 새 게임 선택 시 타이머가 정지 상태를 유지해야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 시작
         viewModel.startTimer()
@@ -72,7 +71,7 @@ class TimerGameOverTest {
 
     @Test
     fun `재시작 옵션에서 재시도 선택 시 타이머가 새로 시작되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 시작 후 시간 설정
         viewModel.startTimer()
@@ -93,7 +92,7 @@ class TimerGameOverTest {
 
     @Test
     fun `팝업이 표시되지 않은 상태에서는 타이머가 계속 실행되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 시작
         viewModel.startTimer()

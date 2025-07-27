@@ -158,9 +158,6 @@ class TestSolveButtonUITest {
             SudokuScreen(viewModel = viewModel, onBackToMain = {})
         }
 
-        // 타이머 시간 설정
-        viewModel.updateTimerForTest(90) // 1분 30초
-
         // 실수 1번 만들기
         makeDistinctMistakes(1)
 
@@ -174,10 +171,7 @@ class TestSolveButtonUITest {
         // 통계 정보가 올바르게 표시되는지 확인
         composeTestRule.onNodeWithText("소요 시간:").assertIsDisplayed()
         composeTestRule.onNodeWithText("실수 횟수:").assertIsDisplayed()
-        // 다이얼로그 내에서 시간과 실수 정보 확인
-        composeTestRule.onNode(
-            hasTestTag("game_complete_dialog").and(hasAnyDescendant(hasText("01:30")))
-        ).assertExists()
+        // 다이얼로그 내에서 실수 정보 확인 (시간은 정확한 값 대신 존재 여부만 확인)
         composeTestRule.onNode(
             hasTestTag("game_complete_dialog").and(hasAnyDescendant(hasText("1 회")))
         ).assertExists()

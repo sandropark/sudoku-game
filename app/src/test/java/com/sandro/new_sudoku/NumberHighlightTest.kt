@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -10,8 +11,7 @@ class NumberHighlightTest {
 
     @Test
     fun `숫자가 있는 셀 선택 시 같은 숫자들이 하이라이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 
@@ -59,8 +59,7 @@ class NumberHighlightTest {
 
     @Test
     fun `빈 셀 선택 시 하이라이트가 없어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 
@@ -91,8 +90,7 @@ class NumberHighlightTest {
 
     @Test
     fun `사용자가 입력한 숫자도 하이라이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 
@@ -130,8 +128,7 @@ class NumberHighlightTest {
 
     @Test
     fun `다른 셀 선택 시 하이라이트가 업데이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 
@@ -194,8 +191,7 @@ class NumberHighlightTest {
 
     @Test
     fun `셀 선택 해제 시 하이라이트가 사라져야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 

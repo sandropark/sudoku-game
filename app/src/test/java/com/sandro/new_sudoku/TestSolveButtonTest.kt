@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,8 +10,7 @@ class TestSolveButtonTest {
 
     @Test
     fun `정답 입력 버튼 클릭시 게임이 완료되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 초기 상태 확인
         val initialState = viewModel.state.value
@@ -32,8 +32,7 @@ class TestSolveButtonTest {
 
     @Test
     fun `정답 입력 시 빈 셀만 채워져야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 초기 보드 상태 저장
         val initialState = viewModel.state.value
@@ -71,8 +70,7 @@ class TestSolveButtonTest {
 
     @Test
     fun `정답 입력 시 스도쿠 규칙이 만족되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 정답 입력 실행
         viewModel.fillCorrectAnswers()
@@ -120,8 +118,7 @@ class TestSolveButtonTest {
 
     @Test
     fun `정답 입력 시 실수 카운트는 변경되지 않아야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 실수 몇 번 만들기
         val state = viewModel.state.value
@@ -158,8 +155,7 @@ class TestSolveButtonTest {
 
     @Test
     fun `정답 입력 버튼은 게임 진행 중에만 동작해야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 먼저 게임을 완료상태로 만들기
         viewModel.solveGame()

@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,7 +20,7 @@ class MistakeCountTest {
 
     @Test
     fun `잘못된 값 입력시 실수 카운트가 증가해야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 빈 셀 찾기 (초기 셀이 아닌 셀)
         val state = viewModel.state.value
@@ -68,7 +69,7 @@ class MistakeCountTest {
 
     @Test
     fun `올바른 값 입력시 실수 카운트가 증가하지 않아야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 빈 셀 찾기
         val state = viewModel.state.value
@@ -112,7 +113,7 @@ class MistakeCountTest {
 
     @Test
     fun `실수 3번시 게임이 종료되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 3번의 잘못된 입력을 시뮬레이션
         repeat(3) { mistake ->
@@ -166,7 +167,7 @@ class MistakeCountTest {
 
     @Test
     fun `새 게임 시작시 실수 카운트가 초기화되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 실수를 먼저 만들기
         val state = viewModel.state.value

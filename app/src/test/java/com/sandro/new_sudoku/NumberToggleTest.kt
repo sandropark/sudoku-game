@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -10,7 +11,7 @@ class NumberToggleTest {
 
     @Test
     fun `빈 셀에 숫자 입력 후 같은 숫자 다시 입력하면 지워져야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 빈 셀 찾기 (초기 셀이 아닌 셀)
         val state = viewModel.state.value
@@ -55,7 +56,7 @@ class NumberToggleTest {
 
     @Test
     fun `다른 숫자를 입력하면 기존 숫자가 교체되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 빈 셀 찾기
         val state = viewModel.state.value
@@ -103,7 +104,7 @@ class NumberToggleTest {
 
     @Test
     fun `초기 셀에서는 같은 숫자를 눌러도 지워지지 않아야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 초기 셀 찾기
         val state = viewModel.state.value
@@ -142,7 +143,7 @@ class NumberToggleTest {
 
     @Test
     fun `빈 셀에 0을 입력해도 변화가 없어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 빈 셀 찾기
         val state = viewModel.state.value
@@ -174,7 +175,7 @@ class NumberToggleTest {
 
     @Test
     fun `채워진 셀에 0을 입력하면 지워져야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 빈 셀 찾기
         val state = viewModel.state.value

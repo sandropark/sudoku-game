@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,7 +10,7 @@ class TimerTest {
 
     @Test
     fun `게임 시작시 타이머가 0부터 시작해야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         val initialState = viewModel.state.value
         assertEquals("초기 타이머는 0이어야 함", 0, initialState.elapsedTimeSeconds)
@@ -18,7 +19,7 @@ class TimerTest {
 
     @Test
     fun `타이머 시작시 상태가 업데이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 먼저 타이머를 정지시켜서 정확한 초기 상태로 만듦
         viewModel.stopTimer()
@@ -30,7 +31,7 @@ class TimerTest {
 
     @Test
     fun `타이머 정지시 상태가 업데이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 명확한 상태 설정
         viewModel.stopTimer()
@@ -45,7 +46,7 @@ class TimerTest {
 
     @Test
     fun `타이머 일시정지 및 재개가 정상 작동해야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 시작
         viewModel.startTimer()
@@ -62,7 +63,7 @@ class TimerTest {
 
     @Test
     fun `타이머 리셋시 시간이 0으로 초기화되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 시간 흐름 시뮬레이션을 위해 직접 상태 설정
         viewModel.updateTimerForTest(30)
@@ -78,7 +79,7 @@ class TimerTest {
 
     @Test
     fun `새 게임 시작시 타이머가 초기화되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 먼저 타이머를 설정해놓고
         viewModel.updateTimerForTest(30)
@@ -94,7 +95,7 @@ class TimerTest {
 
     @Test
     fun `게임 완료시 타이머가 자동으로 정지되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 게임 시작 후 타이머 수동 시작
         viewModel.newGame()
@@ -112,7 +113,7 @@ class TimerTest {
 
     @Test
     fun `타이머 포맷이 올바르게 변환되어야 한다`() {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 다양한 시간 테스트
         assertEquals("0초", "00:00", viewModel.formatTime(0))

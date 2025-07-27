@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,7 +11,7 @@ class GameOverPopupTest {
 
     @Test
     fun `실수 3번시 게임 종료 팝업이 표시되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 빈 셀 찾기
         val state = viewModel.state.value
@@ -62,8 +63,7 @@ class GameOverPopupTest {
 
     @Test
     fun `게임 종료 팝업에서 계속하기 선택시 팝업이 닫히고 게임이 계속되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true // 테스트 모드 활성화
+        val viewModel = SudokuTestHelper.createTimerTestViewModel() // 테스트 모드 활성화
 
         // 더 간단한 방법: 3번의 실수를 여러 셀에서 만들기
         val state = viewModel.state.value
@@ -100,7 +100,7 @@ class GameOverPopupTest {
 
     @Test
     fun `게임 종료 팝업에서 새 게임 선택시 새 게임이 시작되어야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 더 간단한 방법: 3번의 실수를 여러 셀에서 만들기
         val state = viewModel.state.value
@@ -139,7 +139,7 @@ class GameOverPopupTest {
 
     @Test
     fun `초기 상태에서는 게임 종료 팝업이 표시되지 않아야 한다`() = runTest {
-        val viewModel = SudokuViewModel()
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
         val state = viewModel.state.value
 
         assertFalse("초기 상태에서 게임 종료 팝업이 표시되지 않아야 함", state.showGameOverDialog)

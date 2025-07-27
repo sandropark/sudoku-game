@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,8 +10,7 @@ class RowColHighlightTest {
 
     @Test
     fun `셀 선택 시 해당 행과 열이 하이라이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 특정 셀 선택 (3, 5)
         val selectedRow = 3
@@ -26,8 +26,7 @@ class RowColHighlightTest {
 
     @Test
     fun `다른 셀 선택 시 행과 열 하이라이트가 변경되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 첫 번째 셀 선택 (2, 4)
         val firstRow = 2
@@ -52,8 +51,7 @@ class RowColHighlightTest {
 
     @Test
     fun `셀 선택 해제 시 행과 열 하이라이트가 사라져야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 셀 선택
         val selectedRow = 4
@@ -74,8 +72,7 @@ class RowColHighlightTest {
 
     @Test
     fun `행과 열 하이라이트는 하나씩만 활성화되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         // 셀 선택
         val selectedRow = 1
@@ -91,8 +88,7 @@ class RowColHighlightTest {
 
     @Test
     fun `숫자 하이라이트와 행열 하이라이트가 동시에 작동해야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 
@@ -131,8 +127,7 @@ class RowColHighlightTest {
 
     @Test
     fun `빈 셀 선택 시에도 행과 열은 하이라이트되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTestViewModel()
 
         val state = viewModel.state.value
 

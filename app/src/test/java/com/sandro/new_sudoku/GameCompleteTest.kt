@@ -1,5 +1,6 @@
 package com.sandro.new_sudoku
 
+import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,8 +10,7 @@ class GameCompleteTest {
 
     @Test
     fun `게임 완료시 완료 다이얼로그가 표시되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 초기 상태 확인
         val initialState = viewModel.state.value
@@ -28,8 +28,7 @@ class GameCompleteTest {
 
     @Test
     fun `완료 다이얼로그에서 다시하기 선택시 현재 게임이 재시작되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 초기 보드 상태 저장
         val initialBoard = viewModel.state.value.board.map { it.clone() }.toTypedArray()
@@ -67,8 +66,7 @@ class GameCompleteTest {
 
     @Test
     fun `완료 다이얼로그에서 메인으로 이동 선택시 네비게이션 상태가 변경되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 게임 완료
         viewModel.solveGame()
@@ -84,8 +82,7 @@ class GameCompleteTest {
 
     @Test
     fun `게임 완료 시 통계 정보가 올바르게 저장되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 시작 및 시간 설정
         viewModel.updateTimerForTest(125) // 2분 5초
@@ -124,8 +121,7 @@ class GameCompleteTest {
 
     @Test
     fun `실제 퍼즐 완성시에도 완료 다이얼로그가 표시되어야 한다`() {
-        val viewModel = SudokuViewModel()
-        viewModel.isTestMode = true
+        val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
         // 타이머 시작
         viewModel.startTimer()
