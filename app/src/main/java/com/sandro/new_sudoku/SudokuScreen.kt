@@ -36,18 +36,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun SudokuScreen(
     modifier: Modifier = Modifier,
-    viewModel: SudokuViewModel = viewModel()
+    viewModel: SudokuViewModel = viewModel(),
+    onBackToMain: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        TopBar()
+        TopBar(onBackClick = onBackToMain)
         StatusBar()
-        
+
         Spacer(Modifier.height(8.dp))
         Box(
             modifier = Modifier
@@ -55,7 +56,12 @@ fun SudokuScreen(
                 .padding(horizontal = 8.dp),
             contentAlignment = Alignment.Center
         ) {
-            key(state.notes.hashCode(), state.board.hashCode(), state.selectedRow, state.selectedCol) {
+            key(
+                state.notes.hashCode(),
+                state.board.hashCode(),
+                state.selectedRow,
+                state.selectedCol
+            ) {
                 SudokuBoard(
                     board = state.board,
                     isInitialCells = state.isInitialCells,
@@ -77,25 +83,25 @@ fun SudokuScreen(
         Spacer(Modifier.height(8.dp))
         ActionBar(viewModel)
         Spacer(Modifier.height(8.dp))
-            NumberPad(
+        NumberPad(
             isNoteMode = state.isNoteMode,
-                onNumberClick = { number ->
-                    viewModel.setCellValue(number)
-                },
+            onNumberClick = { number ->
+                viewModel.setCellValue(number)
+            },
             onNoteNumberClick = { number ->
                 viewModel.addNoteNumber(number)
             },
-                onClearClick = {
-                    viewModel.clearCell()
-                },
-                modifier = Modifier.testTag("number_pad")
-            )
+            onClearClick = {
+                viewModel.clearCell()
+            },
+            modifier = Modifier.testTag("number_pad")
+        )
         Spacer(Modifier.height(8.dp))
     }
 }
 
 @Composable
-fun TopBar() {
+fun TopBar(onBackClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -103,7 +109,11 @@ fun TopBar() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 뒤로가기
-        Box(Modifier.size(32.dp)) {
+        Box(
+            Modifier
+                .size(32.dp)
+                .clickable { onBackClick() }
+        ) {
             // 아이콘은 실제 프로젝트에 맞게 교체
             Text("←", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
         }
@@ -139,7 +149,7 @@ fun ActionBar(viewModel: SudokuViewModel) {
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
+    ) {
         ActionButton("실행취소", testTag = "action_btn_실행취소", onClick = { viewModel.onUndo() })
         ActionButton("지우기", testTag = "action_btn_지우기", onClick = { viewModel.clearCell() })
         ActionButton(
@@ -152,14 +162,20 @@ fun ActionBar(viewModel: SudokuViewModel) {
 }
 
 @Composable
-fun ActionButton(text: String, badgeCount: Int = 0, testTag: String? = null, onClick: (() -> Unit)? = null) {
+fun ActionButton(
+    text: String,
+    badgeCount: Int = 0,
+    testTag: String? = null,
+    onClick: (() -> Unit)? = null
+) {
     Box(
         modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = if (onClick != null) {
-                Modifier.clickable { onClick() }
+                Modifier
+                    .clickable { onClick() }
                     .semantics {
                         this.contentDescription = "$text 버튼"
                         this.role = Role.Button
