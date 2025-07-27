@@ -143,10 +143,18 @@ class SudokuViewModel : ViewModel() {
 
         saveCurrentStateToUndoStack(row, col)
 
-        // 값 입력 전에 유효성 검사
-        val isValidMove = game.isValidMove(row, col, value)
+        // 토글 기능: 현재 값과 입력하려는 값이 같으면 지우기 (0으로 설정)
+        val currentCellValue = game.getCell(row, col)
+        val finalValue = if (currentCellValue == value && value != 0) {
+            0 // 같은 값이면 지우기
+        } else {
+            value // 다른 값이면 그대로 설정
+        }
 
-        val success = game.setCell(row, col, value)
+        // 값 입력 전에 유효성 검사
+        val isValidMove = game.isValidMove(row, col, finalValue)
+
+        val success = game.setCell(row, col, finalValue)
         if (!success) {
             return
         }
@@ -159,7 +167,9 @@ class SudokuViewModel : ViewModel() {
         var newMistakeCount = currentState.mistakeCount
         var showGameOverDialog = currentState.showGameOverDialog
 
-        if (!isValidMove && value != 0) { // 잘못된 값이고 0이 아닌 경우 (지우기가 아닌 경우)
+        // 토글로 지우는 경우(currentCellValue == value)는 실수로 계산하지 않음
+        val isToggleClear = (currentCellValue == value && value != 0)
+        if (!isValidMove && finalValue != 0 && !isToggleClear) { // 잘못된 값이고 지우기가 아니며 토글이 아닌 경우
             newMistakeCount += 1
             if (newMistakeCount >= 3) {
                 showGameOverDialog = true
