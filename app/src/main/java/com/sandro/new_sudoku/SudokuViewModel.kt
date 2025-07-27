@@ -377,7 +377,7 @@ class SudokuViewModel : ViewModel() {
     fun continueGameAfterMistakes() {
         _state.value = _state.value.copy(
             showGameOverDialog = false,
-            mistakeCount = 0 // 실수 카운트 초기화
+            mistakeCount = 2 // 실수 카운트를 2로 설정 (페널티)
         )
     }
 

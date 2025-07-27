@@ -94,7 +94,7 @@ class GameOverPopupTest {
         val updatedState = viewModel.state.value
         assertFalse("계속하기 후 팝업이 닫혀야 함", updatedState.showGameOverDialog)
         assertFalse("계속하기 후 게임이 종료 상태가 아니어야 함", updatedState.isGameOver)
-        assertEquals("계속하기 후 실수 카운트가 초기화되어야 함", 0, updatedState.mistakeCount)
+        assertEquals("계속하기 후 실수 카운트가 2가 되어야 함", 2, updatedState.mistakeCount)
     }
 
     @Test
