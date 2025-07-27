@@ -44,11 +44,22 @@ fun SudokuApp(
     var currentScreen by remember { mutableStateOf("main") }
     val mainScreenState by mainScreenViewModel.state.collectAsState()
 
-    // 네비게이션 처리
+    // 메인화면에서 게임화면으로 네비게이션
     LaunchedEffect(mainScreenState.shouldNavigateToGame) {
         if (mainScreenState.shouldNavigateToGame) {
             currentScreen = "game"
             mainScreenViewModel.onNavigationCompleted()
+        }
+    }
+
+    // 게임화면에서 메인화면으로 네비게이션 (난이도 변경 시)
+    val sudokuState by sudokuViewModel.state.collectAsState()
+    LaunchedEffect(sudokuState.shouldNavigateToMain) {
+        if (sudokuState.shouldNavigateToMain) {
+            currentScreen = "main"
+            mainScreenViewModel.resetGameProgress()
+            // shouldNavigateToMain 상태 초기화
+            sudokuViewModel.resetNavigationState()
         }
     }
 

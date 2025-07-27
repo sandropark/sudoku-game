@@ -19,7 +19,9 @@ data class SudokuState(
     val notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } },
     val mistakeCount: Int = 0,
     val isGameOver: Boolean = false,
-    val showGameOverDialog: Boolean = false
+    val showGameOverDialog: Boolean = false,
+    val showRestartOptionsDialog: Boolean = false,
+    val shouldNavigateToMain: Boolean = false
 )
 
 class SudokuViewModel : ViewModel() {
@@ -44,11 +46,19 @@ class SudokuViewModel : ViewModel() {
     // Quadruple 클래스 정의
     data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
+    // 초기 보드 상태 저장
+    private var initialBoard: Array<IntArray>? = null
+    private var initialCells: Array<BooleanArray>? = null
+
     init {
         // 반드시 SudokuGame 생성 직후의 board와 initialCells를 사용
         val board = game.getBoard()
         val isInitialCells =
             Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
+
+        // 초기 상태 저장 (재시도용)
+        saveInitialState(board, isInitialCells)
+
         _state.value = SudokuState(
             board = board,
             isInitialCells = isInitialCells
@@ -111,6 +121,8 @@ class SudokuViewModel : ViewModel() {
         mistakeCount: Int? = null,
         isGameOver: Boolean? = null,
         showGameOverDialog: Boolean? = null,
+        showRestartOptionsDialog: Boolean? = null,
+        shouldNavigateToMain: Boolean? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -128,7 +140,10 @@ class SudokuViewModel : ViewModel() {
             invalidCells = newInvalidCells,
             mistakeCount = mistakeCount ?: currentState.mistakeCount,
             isGameOver = isGameOver ?: currentState.isGameOver,
-            showGameOverDialog = showGameOverDialog ?: currentState.showGameOverDialog
+            showGameOverDialog = showGameOverDialog ?: currentState.showGameOverDialog,
+            showRestartOptionsDialog = showRestartOptionsDialog
+                ?: currentState.showRestartOptionsDialog,
+            shouldNavigateToMain = shouldNavigateToMain ?: currentState.shouldNavigateToMain
         )
     }
 
@@ -213,6 +228,9 @@ class SudokuViewModel : ViewModel() {
         val newInitialCells =
             Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
 
+        // 초기 상태 저장 (재시도용)
+        saveInitialState(newBoard, newInitialCells)
+
         // 새 게임 시작 시 undo 스택 초기화
         undoStack.clear()
 
@@ -226,7 +244,9 @@ class SudokuViewModel : ViewModel() {
             invalidCells = calculateInvalidCells(),
             mistakeCount = 0,
             isGameOver = false,
-            showGameOverDialog = false
+            showGameOverDialog = false,
+            showRestartOptionsDialog = false,
+            shouldNavigateToMain = false
         )
     }
 
@@ -236,6 +256,9 @@ class SudokuViewModel : ViewModel() {
         val newInitialCells =
             Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
 
+        // 초기 상태 저장 (재시도용)
+        saveInitialState(newBoard, newInitialCells)
+
         // 새 게임 시작 시 undo 스택 초기화
         undoStack.clear()
 
@@ -249,7 +272,9 @@ class SudokuViewModel : ViewModel() {
             invalidCells = calculateInvalidCells(),
             mistakeCount = 0,
             isGameOver = false,
-            showGameOverDialog = false
+            showGameOverDialog = false,
+            showRestartOptionsDialog = false,
+            shouldNavigateToMain = false
         )
     }
 
@@ -388,6 +413,9 @@ class SudokuViewModel : ViewModel() {
         val newInitialCells =
             Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
 
+        // 초기 상태 저장 (재시도용)
+        saveInitialState(newBoard, newInitialCells)
+
         // 새 게임 시작 시 undo 스택 초기화
         undoStack.clear()
 
@@ -401,7 +429,81 @@ class SudokuViewModel : ViewModel() {
             invalidCells = calculateInvalidCells(),
             mistakeCount = 0,
             isGameOver = false,
-            showGameOverDialog = false
+            showGameOverDialog = false,
+            showRestartOptionsDialog = false,
+            shouldNavigateToMain = false
+        )
+    }
+
+    // 재시작 옵션 요청 (게임 오버 후 새 게임 버튼 클릭)
+    fun requestNewGameOptions() {
+        _state.value = _state.value.copy(
+            showGameOverDialog = false,
+            showRestartOptionsDialog = true
+        )
+    }
+
+    // 현재 게임 재시도 (같은 보드로 처음부터)
+    fun retryCurrentGame() {
+        if (initialBoard != null && initialCells != null) {
+            // 초기 상태로 복원
+            val restoredBoard = initialBoard!!.map { it.clone() }.toTypedArray()
+            val restoredCells = initialCells!!.map { it.clone() }.toTypedArray()
+
+            // 게임 보드 설정
+            game.setBoard(restoredBoard)
+
+            // 상태 초기화
+            undoStack.clear()
+
+            _state.value = SudokuState(
+                board = restoredBoard,
+                isInitialCells = restoredCells,
+                selectedRow = -1,
+                selectedCol = -1,
+                isGameComplete = false,
+                showError = false,
+                invalidCells = calculateInvalidCells(),
+                mistakeCount = 0,
+                isGameOver = false,
+                showGameOverDialog = false,
+                showRestartOptionsDialog = false,
+                shouldNavigateToMain = false
+            )
+        }
+    }
+
+    // 난이도 변경 후 재시작
+    fun changeDifficultyAndRestart() {
+        _state.value = _state.value.copy(
+            showRestartOptionsDialog = false,
+            shouldNavigateToMain = true
+        )
+    }
+
+    // 재시작 옵션 취소
+    fun cancelRestartOptions() {
+        _state.value = _state.value.copy(
+            showRestartOptionsDialog = false,
+            showGameOverDialog = true
+        )
+    }
+
+    // 초기 보드 상태 저장
+    private fun saveInitialState(board: Array<IntArray>, cells: Array<BooleanArray>) {
+        initialBoard = board.map { it.clone() }.toTypedArray()
+        initialCells = cells.map { it.clone() }.toTypedArray()
+    }
+
+    // 초기 보드 상태 조회 (테스트용)
+    fun getInitialBoard(): Array<IntArray>? {
+        return initialBoard?.map { it.clone() }?.toTypedArray()
+    }
+
+    // 네비게이션 상태 초기화
+    fun resetNavigationState() {
+        _state.value = _state.value.copy(
+            shouldNavigateToMain = false
         )
     }
 
@@ -409,5 +511,7 @@ class SudokuViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         undoStack.clear()
+        initialBoard = null
+        initialCells = null
     }
 } 

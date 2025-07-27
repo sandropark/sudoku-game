@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -102,11 +105,20 @@ fun SudokuScreen(
         )
         Spacer(Modifier.height(8.dp))
 
-        // 게임 종료 팝업
+        // Game Over Popup
         if (state.showGameOverDialog) {
             GameOverDialog(
                 onContinue = { viewModel.continueGameAfterMistakes() },
-                onNewGame = { viewModel.startNewGameAfterMistakes() }
+                onNewGame = { viewModel.requestNewGameOptions() } // 수정: 재시작 옵션 팝업 표시
+            )
+        }
+
+        // Restart Options Popup (새로 추가)
+        if (state.showRestartOptionsDialog) {
+            RestartOptionsDialog(
+                onRetry = { viewModel.retryCurrentGame() },
+                onChangeDifficulty = { viewModel.changeDifficultyAndRestart() },
+                onCancel = { viewModel.cancelRestartOptions() }
             )
         }
     }
@@ -219,47 +231,118 @@ fun GameOverDialog(
     onNewGame: () -> Unit
 ) {
     AlertDialog(
-        onDismissRequest = { }, // 외부 터치로 닫을 수 없음
+        onDismissRequest = { }, // Cannot dismiss by external touch
         title = {
             Text(
                 text = "실수 3번!",
-                style = MaterialTheme.typography.titleLarge,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.testTag("game_over_dialog_title")
+                color = MaterialTheme.colorScheme.error
             )
         },
         text = {
             Text(
                 text = "실수를 3번 하셨습니다.\n어떻게 하시겠습니까?",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("game_over_dialog_message")
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
             )
         },
         confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onContinue,
-                    modifier = Modifier.testTag("game_over_continue_btn"),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
+                    modifier = Modifier.testTag("game_over_continue_btn")
                 ) {
                     Text("계속하기")
                 }
                 Button(
                     onClick = onNewGame,
-                    modifier = Modifier.testTag("game_over_new_game_btn"),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+                    modifier = Modifier.testTag("game_over_new_game_btn")
                 ) {
                     Text("새 게임")
                 }
             }
         },
-        dismissButton = { }, // 취소 버튼 없음
+        dismissButton = { }, // No explicit dismiss button
         modifier = Modifier.testTag("game_over_dialog")
+    )
+}
+
+@Composable
+fun RestartOptionsDialog(
+    onRetry: () -> Unit,
+    onChangeDifficulty: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = {
+            Text(
+                text = "새 게임 옵션",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
+        text = {
+            Text(
+                text = "어떤 방식으로 새 게임을 시작하시겠습니까?",
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
+        },
+        confirmButton = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = onRetry,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("restart_option_retry_btn"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("재시도", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "(현재 게임 처음부터)",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    )
+                }
+
+                Button(
+                    onClick = onChangeDifficulty,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("restart_option_difficulty_btn"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("난이도 변경", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "(새로운 게임)",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f)
+                    )
+                }
+
+                TextButton(
+                    onClick = onCancel,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("restart_option_cancel_btn")
+                ) {
+                    Text("취소", fontSize = 16.sp)
+                }
+            }
+        },
+        dismissButton = { }, // No explicit dismiss button
+        modifier = Modifier.testTag("restart_options_dialog")
     )
 } 
