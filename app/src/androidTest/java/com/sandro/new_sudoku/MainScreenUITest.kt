@@ -113,7 +113,7 @@ class MainScreenUITest {
     }
 
     @Test
-    fun testContinueButtonOnlyVisibleWhenGameInProgress() {
+    fun testContinueButtonNotVisibleWhenNoGameInProgress() {
         // 게임이 진행중이지 않을 때
         composeTestRule.setContent {
             MainScreen(
@@ -125,7 +125,10 @@ class MainScreenUITest {
 
         // 이어하기 버튼이 보이지 않음
         composeTestRule.onNodeWithTag("continue_game_btn").assertDoesNotExist()
+    }
 
+    @Test
+    fun testContinueButtonVisibleWhenGameInProgress() {
         // 게임이 진행중일 때
         composeTestRule.setContent {
             MainScreen(
