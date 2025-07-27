@@ -18,7 +18,8 @@ data class SudokuState(
     val isNoteMode: Boolean = false,
     val notes: Array<Array<Set<Int>>> = Array(9) { Array(9) { emptySet() } },
     val mistakeCount: Int = 0,
-    val isGameOver: Boolean = false
+    val isGameOver: Boolean = false,
+    val showGameOverDialog: Boolean = false
 )
 
 class SudokuViewModel : ViewModel() {
@@ -109,6 +110,7 @@ class SudokuViewModel : ViewModel() {
         errorMessage: String? = null,
         mistakeCount: Int? = null,
         isGameOver: Boolean? = null,
+        showGameOverDialog: Boolean? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -125,7 +127,8 @@ class SudokuViewModel : ViewModel() {
             errorMessage = errorMessage ?: currentState.errorMessage,
             invalidCells = newInvalidCells,
             mistakeCount = mistakeCount ?: currentState.mistakeCount,
-            isGameOver = isGameOver ?: currentState.isGameOver
+            isGameOver = isGameOver ?: currentState.isGameOver,
+            showGameOverDialog = showGameOverDialog ?: currentState.showGameOverDialog
         )
     }
 
@@ -154,12 +157,12 @@ class SudokuViewModel : ViewModel() {
 
         // 실수 카운트 업데이트
         var newMistakeCount = currentState.mistakeCount
-        var isGameOver = currentState.isGameOver
+        var showGameOverDialog = currentState.showGameOverDialog
 
         if (!isValidMove && value != 0) { // 잘못된 값이고 0이 아닌 경우 (지우기가 아닌 경우)
             newMistakeCount += 1
             if (newMistakeCount >= 3) {
-                isGameOver = true
+                showGameOverDialog = true
             }
         }
 
@@ -167,7 +170,7 @@ class SudokuViewModel : ViewModel() {
             board = game.getBoard(),
             notes = newNotes,
             mistakeCount = newMistakeCount,
-            isGameOver = isGameOver
+            showGameOverDialog = showGameOverDialog
         )
     }
 
@@ -212,7 +215,8 @@ class SudokuViewModel : ViewModel() {
             showError = false,
             invalidCells = calculateInvalidCells(),
             mistakeCount = 0,
-            isGameOver = false
+            isGameOver = false,
+            showGameOverDialog = false
         )
     }
 
@@ -234,7 +238,8 @@ class SudokuViewModel : ViewModel() {
             showError = false,
             invalidCells = calculateInvalidCells(),
             mistakeCount = 0,
-            isGameOver = false
+            isGameOver = false,
+            showGameOverDialog = false
         )
     }
 
@@ -356,6 +361,38 @@ class SudokuViewModel : ViewModel() {
 
     fun getCellValue(row: Int, col: Int): Int {
         return game.getCell(row, col)
+    }
+
+    // 게임 종료 팝업에서 계속하기 선택
+    fun continueGameAfterMistakes() {
+        _state.value = _state.value.copy(
+            showGameOverDialog = false,
+            mistakeCount = 0 // 실수 카운트 초기화
+        )
+    }
+
+    // 게임 종료 팝업에서 새 게임 선택
+    fun startNewGameAfterMistakes() {
+        game.generateNewGame()
+        val newBoard = game.getBoard()
+        val newInitialCells =
+            Array(9) { row -> BooleanArray(9) { col -> game.isInitialCell(row, col) } }
+
+        // 새 게임 시작 시 undo 스택 초기화
+        undoStack.clear()
+
+        _state.value = SudokuState(
+            board = newBoard,
+            isInitialCells = newInitialCells,
+            selectedRow = -1,
+            selectedCol = -1,
+            isGameComplete = false,
+            showError = false,
+            invalidCells = calculateInvalidCells(),
+            mistakeCount = 0,
+            isGameOver = false,
+            showGameOverDialog = false
+        )
     }
 
     // ViewModel 정리 시 메모리 해제

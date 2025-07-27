@@ -157,7 +157,7 @@ class MistakeCountTest {
                     assertEquals(mistake + 1, currentState.mistakeCount)
 
                     if (mistake == 2) { // 3번째 실수
-                        assertTrue("3번째 실수 후 게임이 종료되어야 함", currentState.isGameOver)
+                        assertTrue("3번째 실수 후 게임 종료 팝업이 표시되어야 함", currentState.showGameOverDialog)
                     }
                 }
             }

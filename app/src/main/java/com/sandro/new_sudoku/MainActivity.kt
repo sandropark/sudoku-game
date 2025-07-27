@@ -43,7 +43,6 @@ fun SudokuApp(
 ) {
     var currentScreen by remember { mutableStateOf("main") }
     val mainScreenState by mainScreenViewModel.state.collectAsState()
-    val sudokuState by sudokuViewModel.state.collectAsState()
 
     // 네비게이션 처리
     LaunchedEffect(mainScreenState.shouldNavigateToGame) {
@@ -53,14 +52,7 @@ fun SudokuApp(
         }
     }
 
-    // 게임 종료 시 메인화면으로 이동
-    LaunchedEffect(sudokuState.isGameOver) {
-        if (sudokuState.isGameOver) {
-            currentScreen = "main"
-            // 게임이 끝났으므로 진행 중인 게임 상태 초기화
-            mainScreenViewModel.resetGameProgress()
-        }
-    }
+
 
     when (currentScreen) {
         "main" -> {

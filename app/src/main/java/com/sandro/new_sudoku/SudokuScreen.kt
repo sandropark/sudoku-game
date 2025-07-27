@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -97,6 +101,14 @@ fun SudokuScreen(
             modifier = Modifier.testTag("number_pad")
         )
         Spacer(Modifier.height(8.dp))
+
+        // 게임 종료 팝업
+        if (state.showGameOverDialog) {
+            GameOverDialog(
+                onContinue = { viewModel.continueGameAfterMistakes() },
+                onNewGame = { viewModel.startNewGameAfterMistakes() }
+            )
+        }
     }
 }
 
@@ -198,4 +210,56 @@ fun ActionButton(
             }
         }
     }
+}
+
+
+@Composable
+fun GameOverDialog(
+    onContinue: () -> Unit,
+    onNewGame: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { }, // 외부 터치로 닫을 수 없음
+        title = {
+            Text(
+                text = "실수 3번!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.testTag("game_over_dialog_title")
+            )
+        },
+        text = {
+            Text(
+                text = "실수를 3번 하셨습니다.\n어떻게 하시겠습니까?",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("game_over_dialog_message")
+            )
+        },
+        confirmButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onContinue,
+                    modifier = Modifier.testTag("game_over_continue_btn"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("계속하기")
+                }
+                Button(
+                    onClick = onNewGame,
+                    modifier = Modifier.testTag("game_over_new_game_btn"),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("새 게임")
+                }
+            }
+        },
+        dismissButton = { }, // 취소 버튼 없음
+        modifier = Modifier.testTag("game_over_dialog")
+    )
 } 
