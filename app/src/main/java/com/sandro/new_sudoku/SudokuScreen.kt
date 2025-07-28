@@ -108,6 +108,7 @@ fun SudokuScreen(
             onNumberClick = { number -> viewModel.setCellValue(number) },
             onNoteNumberClick = { number -> viewModel.addNoteNumber(number) },
             onClearClick = { viewModel.clearCell() },
+            completedNumbers = state.completedNumbers,
             modifier = Modifier.testTag("number_pad")
         )
 

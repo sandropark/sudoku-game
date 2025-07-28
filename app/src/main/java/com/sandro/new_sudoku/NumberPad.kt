@@ -31,7 +31,8 @@ fun NumberPad(
     onNumberClick: (Int) -> Unit,
     onNoteNumberClick: (Int) -> Unit,
     onClearClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    completedNumbers: Set<Int> = emptySet()
 ) {
     Box(
         modifier = modifier.testTag("number_pad")
@@ -45,12 +46,16 @@ fun NumberPad(
             verticalAlignment = Alignment.CenterVertically
         ) {
             for (number in 1..9) {
+                val isCompleted = completedNumbers.contains(number)
                 NumberButton(
                     number = number,
                     onClick = {
-                        if (isNoteMode) onNoteNumberClick(number) else onNumberClick(number)
+                        if (!isCompleted) {
+                            if (isNoteMode) onNoteNumberClick(number) else onNumberClick(number)
+                        }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    isCompleted = isCompleted
                 )
             }
         }
@@ -61,18 +66,29 @@ fun NumberPad(
 fun NumberButton(
     number: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isCompleted: Boolean = false
 ) {
+    val backgroundColor = if (isCompleted) Color.Gray else Color(0xFF1976D2)
+    val borderColor = if (isCompleted) Color.Gray else Color(0xFF1976D2)
+    val textColor = if (isCompleted) Color.White.copy(alpha = 0.6f) else Color.White
+    
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .padding(2.dp)
-            .background(Color(0xFF1976D2), shape = RoundedCornerShape(8.dp))
-            .border(2.dp, Color(0xFF1976D2), shape = RoundedCornerShape(8.dp))
-            .clickable { onClick() }
+            .background(backgroundColor, shape = RoundedCornerShape(8.dp))
+            .border(2.dp, borderColor, shape = RoundedCornerShape(8.dp))
+            .clickable(enabled = !isCompleted) { 
+                if (!isCompleted) onClick() 
+            }
             .testTag("number_btn_$number")
             .semantics {
-                this.contentDescription = "숫자 $number 버튼"
+                this.contentDescription = if (isCompleted) {
+                    "숫자 $number 버튼 (완성됨)"
+                } else {
+                    "숫자 $number 버튼"
+                }
                 this.role = Role.Button
             },
         contentAlignment = Alignment.Center
@@ -81,7 +97,7 @@ fun NumberButton(
             text = number.toString(),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = textColor
         )
     }
 }

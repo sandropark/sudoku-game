@@ -32,7 +32,8 @@ data class SudokuState(
     val highlightedNumber: Int = 0, // 하이라이트된 숫자 (0이면 없음)
     val highlightedCells: Set<Pair<Int, Int>> = emptySet(), // 하이라이트된 셀들
     val highlightedRows: Set<Int> = emptySet(), // 하이라이트된 행들
-    val highlightedCols: Set<Int> = emptySet() // 하이라이트된 열들
+    val highlightedCols: Set<Int> = emptySet(), // 하이라이트된 열들
+    val completedNumbers: Set<Int> = emptySet() // 보드에 9개 모두 입력된 완성된 숫자들
 )
 
 class SudokuViewModel : ViewModel() {
@@ -132,6 +133,24 @@ class SudokuViewModel : ViewModel() {
         return invalids
     }
 
+    private fun calculateCompletedNumbers(): Set<Int> {
+        val board = game.getBoard()
+        val numberCounts = mutableMapOf<Int, Int>()
+        
+        // 각 숫자의 개수 세기
+        for (row in 0..8) {
+            for (col in 0..8) {
+                val value = board[row][col]
+                if (value != 0) {
+                    numberCounts[value] = numberCounts.getOrDefault(value, 0) + 1
+                }
+            }
+        }
+        
+        // 9개가 모두 채워진 숫자들 반환
+        return numberCounts.filter { it.value == 9 }.keys.toSet()
+    }
+
     // 현재 상태를 undo 스택에 저장 (크기 제한 적용)
     private fun saveCurrentStateToUndoStack(row: Int, col: Int) {
         // 스택 크기 제한 확인
@@ -176,6 +195,7 @@ class SudokuViewModel : ViewModel() {
         highlightedCells: Set<Pair<Int, Int>>? = null,
         highlightedRows: Set<Int>? = null,
         highlightedCols: Set<Int>? = null,
+        completedNumbers: Set<Int>? = null,
         recalculateInvalidCells: Boolean = true
     ) {
         val currentState = _state.value
@@ -203,7 +223,8 @@ class SudokuViewModel : ViewModel() {
             highlightedNumber = highlightedNumber ?: currentState.highlightedNumber,
             highlightedCells = highlightedCells ?: currentState.highlightedCells,
             highlightedRows = highlightedRows ?: currentState.highlightedRows,
-            highlightedCols = highlightedCols ?: currentState.highlightedCols
+            highlightedCols = highlightedCols ?: currentState.highlightedCols,
+            completedNumbers = completedNumbers ?: calculateCompletedNumbers()
         )
     }
 
