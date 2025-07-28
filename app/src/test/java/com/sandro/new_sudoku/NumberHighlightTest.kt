@@ -223,4 +223,134 @@ class NumberHighlightTest {
         assertEquals("선택 해제 시 하이라이트된 숫자가 0이어야 함", 0, clearedState.highlightedNumber)
         assertTrue("선택 해제 시 하이라이트된 셀이 없어야 함", clearedState.highlightedCells.isEmpty())
     }
+
+    @Test
+    fun `숫자 입력 시 바로 같은 숫자들이 하이라이트되어야 한다`() {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀 찾기
+        var emptyRow = -1
+        var emptyCol = -1
+
+        val state = viewModel.state.value
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+
+        assertTrue("테스트를 위한 빈 셀이 존재해야 함", emptyRow != -1)
+
+        // 빈 셀 선택
+        viewModel.selectCell(emptyRow, emptyCol)
+        
+        // 숫자 입력 (5를 입력)
+        viewModel.setCellValue(5)
+
+        val updatedState = viewModel.state.value
+        
+        // 입력한 숫자가 하이라이트되어야 함
+        assertEquals("입력한 숫자가 하이라이트되어야 함", 5, updatedState.highlightedNumber)
+        
+        // 입력한 셀과 같은 숫자를 가진 모든 셀이 하이라이트되어야 함
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (updatedState.board[row][col] == 5) {
+                    assertTrue(
+                        "숫자 5를 가진 셀($row, $col)이 하이라이트되어야 함",
+                        updatedState.highlightedCells.contains(Pair(row, col))
+                    )
+                }
+            }
+        }
+        
+        // 최소한 입력한 셀은 하이라이트되어야 함
+        assertTrue(
+            "입력한 셀($emptyRow, $emptyCol)이 하이라이트되어야 함",
+            updatedState.highlightedCells.contains(Pair(emptyRow, emptyCol))
+        )
+    }
+
+    @Test
+    fun `숫자 제거 시 하이라이트가 꺼져야 한다`() {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀에 숫자 입력하고 하이라이트 확인
+        var emptyRow = -1
+        var emptyCol = -1
+
+        val state = viewModel.state.value
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+
+        assertTrue("테스트를 위한 빈 셀이 존재해야 함", emptyRow != -1)
+
+        // 빈 셀 선택 후 숫자 입력
+        viewModel.selectCell(emptyRow, emptyCol)
+        viewModel.setCellValue(7)
+
+        val afterInputState = viewModel.state.value
+        assertEquals("숫자 입력 후 하이라이트되어야 함", 7, afterInputState.highlightedNumber)
+        assertFalse("숫자 입력 후 하이라이트된 셀이 있어야 함", afterInputState.highlightedCells.isEmpty())
+
+        // 숫자 제거 (0으로 설정)
+        viewModel.setCellValue(0)
+
+        val afterRemovalState = viewModel.state.value
+        assertEquals("숫자 제거 후 하이라이트가 꺼져야 함", 0, afterRemovalState.highlightedNumber)
+        assertTrue("숫자 제거 후 하이라이트된 셀이 없어야 함", afterRemovalState.highlightedCells.isEmpty())
+    }
+
+    @Test
+    fun `같은 숫자 토글 시 하이라이트가 적절히 처리되어야 한다`() {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀에 숫자 입력
+        var emptyRow = -1
+        var emptyCol = -1
+
+        val state = viewModel.state.value
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+
+        assertTrue("테스트를 위한 빈 셀이 존재해야 함", emptyRow != -1)
+
+        // 빈 셀 선택 후 숫자 입력 (3 입력)
+        viewModel.selectCell(emptyRow, emptyCol)
+        viewModel.setCellValue(3)
+
+        val afterFirstInputState = viewModel.state.value
+        assertEquals("첫 번째 입력 후 하이라이트되어야 함", 3, afterFirstInputState.highlightedNumber)
+        assertFalse("첫 번째 입력 후 하이라이트된 셀이 있어야 함", afterFirstInputState.highlightedCells.isEmpty())
+        assertEquals("셀에 3이 입력되어야 함", 3, afterFirstInputState.board[emptyRow][emptyCol])
+
+        // 같은 숫자를 다시 입력 (토글로 제거됨)
+        viewModel.setCellValue(3)
+
+        val afterToggleState = viewModel.state.value
+        assertEquals("토글 후 하이라이트가 꺼져야 함", 0, afterToggleState.highlightedNumber)
+        assertTrue("토글 후 하이라이트된 셀이 없어야 함", afterToggleState.highlightedCells.isEmpty())
+        assertEquals("토글 후 셀이 비어있어야 함", 0, afterToggleState.board[emptyRow][emptyCol])
+    }
 } 

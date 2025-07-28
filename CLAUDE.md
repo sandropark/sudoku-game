@@ -135,3 +135,5 @@ The `SudokuState` data class contains:
 - UI tests require emulator/device connection
 - Test coverage reports available via JaCoCo tasks
 - Korean comments and test names are intentional and should be preserved
+
+- UI 테스트는 ./gradlew connectedDebugAndroidTest로 실행한다.

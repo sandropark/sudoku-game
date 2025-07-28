@@ -198,4 +198,107 @@ class NumberHighlightUITest {
             "입력한 셀이 하이라이트되어야 함"
         }
     }
+
+    @Test
+    fun testHighlightImmediatelyOnNumberInput() {
+        composeTestRule.setContent {
+            viewModel = SudokuViewModel()
+            SudokuScreen(viewModel = viewModel, onBackToMain = {})
+        }
+
+        val state = viewModel.state.value
+
+        // 빈 셀 찾기
+        var emptyRow = -1
+        var emptyCol = -1
+
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+
+        assert(emptyRow != -1) { "테스트를 위한 빈 셀이 존재해야 함" }
+
+        // 빈 셀 선택
+        val cellTag = "cell_${emptyRow}_${emptyCol}_editable"
+        composeTestRule.onNodeWithTag(cellTag).performClick()
+        composeTestRule.waitForIdle()
+
+        // 숫자 7 입력 후 즉시 하이라이트 확인
+        composeTestRule.onNodeWithTag("number_btn_7").performClick()
+        composeTestRule.waitForIdle()
+
+        // 숫자 입력 후 즉시 하이라이트가 적용되었는지 확인
+        val afterInputState = viewModel.state.value
+        assert(afterInputState.board[emptyRow][emptyCol] == 7) { "숫자가 입력되어야 함" }
+        assert(afterInputState.highlightedNumber == 7) { "입력한 숫자가 즉시 하이라이트되어야 함" }
+        assert(afterInputState.highlightedCells.contains(Pair(emptyRow, emptyCol))) {
+            "입력한 셀이 즉시 하이라이트되어야 함"
+        }
+
+        // 보드에서 숫자 7을 가진 모든 셀이 하이라이트되었는지 확인
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (afterInputState.board[row][col] == 7) {
+                    assert(afterInputState.highlightedCells.contains(Pair(row, col))) {
+                        "숫자 7을 가진 모든 셀이 하이라이트되어야 함: ($row, $col)"
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun testHighlightClearsOnNumberRemoval() {
+        composeTestRule.setContent {
+            viewModel = SudokuViewModel()
+            SudokuScreen(viewModel = viewModel, onBackToMain = {})
+        }
+
+        val state = viewModel.state.value
+
+        // 빈 셀에 숫자 입력
+        var emptyRow = -1
+        var emptyCol = -1
+
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                    emptyRow = row
+                    emptyCol = col
+                    break
+                }
+            }
+            if (emptyRow != -1) break
+        }
+
+        assert(emptyRow != -1) { "테스트를 위한 빈 셀이 존재해야 함" }
+
+        // 빈 셀 선택 후 숫자 입력
+        val cellTag = "cell_${emptyRow}_${emptyCol}_editable"
+        composeTestRule.onNodeWithTag(cellTag).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("number_btn_3").performClick()
+        composeTestRule.waitForIdle()
+
+        val afterInputState = viewModel.state.value
+        assert(afterInputState.highlightedNumber == 3) { "입력 후 하이라이트되어야 함" }
+
+        // 숫자 제거 (지우기 버튼 클릭)
+        composeTestRule.onNodeWithTag("action_btn_지우기").performClick()
+        composeTestRule.waitForIdle()
+
+        // 제거 후 하이라이트가 꺼졌는지 확인
+        val afterRemovalState = viewModel.state.value
+        assert(afterRemovalState.board[emptyRow][emptyCol] == 0) { "숫자가 제거되어야 함" }
+        assert(afterRemovalState.highlightedNumber == 0) { "숫자 제거 후 하이라이트가 꺼져야 함" }
+        assert(afterRemovalState.highlightedCells.isEmpty()) { "숫자 제거 후 하이라이트된 셀이 없어야 함" }
+    }
 } 

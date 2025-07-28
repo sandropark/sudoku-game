@@ -87,19 +87,7 @@ class SudokuViewModel : ViewModel() {
             val selectedNumber = currentBoard[row][col]
 
             // 선택된 셀의 숫자와 같은 숫자들을 찾아서 하이라이트
-            val highlightedCells = if (selectedNumber != 0) {
-                buildSet {
-                    for (r in 0..8) {
-                        for (c in 0..8) {
-                            if (currentBoard[r][c] == selectedNumber) {
-                                add(Pair(r, c))
-                            }
-                        }
-                    }
-                }
-            } else {
-                emptySet()
-            }
+            val highlightedCells = calculateHighlightedCells(selectedNumber)
 
             updateState(
                 selectedRow = row,
@@ -116,6 +104,24 @@ class SudokuViewModel : ViewModel() {
         // 처음 게임 화면 진입 시 타이머 자동 시작 (한 번만, 테스트 모드가 아닐 때만)
         if (!isTestMode && !_state.value.isTimerRunning && _state.value.elapsedTimeSeconds == 0) {
             startTimer()
+        }
+    }
+
+    // 특정 숫자와 같은 숫자를 가진 모든 셀을 찾아서 하이라이트 셋으로 반환
+    private fun calculateHighlightedCells(targetNumber: Int, board: Array<IntArray>? = null): Set<Pair<Int, Int>> {
+        return if (targetNumber != 0) {
+            buildSet {
+                val currentBoard = board ?: _state.value.board
+                for (r in 0..8) {
+                    for (c in 0..8) {
+                        if (currentBoard[r][c] == targetNumber) {
+                            add(Pair(r, c))
+                        }
+                    }
+                }
+            }
+        } else {
+            emptySet()
         }
     }
 
@@ -282,13 +288,19 @@ class SudokuViewModel : ViewModel() {
             stopTimer()
         }
 
+        // 업데이트된 보드를 가져와서 하이라이트 계산
+        val updatedBoard = game.getBoard()
+        val highlightedCells = calculateHighlightedCells(finalValue, updatedBoard)
+
         updateState(
-            board = game.getBoard(),
+            board = updatedBoard,
             notes = newNotes,
             mistakeCount = newMistakeCount,
             showGameOverDialog = showGameOverDialog,
             isGameComplete = gameComplete,
-            showGameCompleteDialog = if (gameComplete && !currentState.isGameComplete) true else null
+            showGameCompleteDialog = if (gameComplete && !currentState.isGameComplete) true else null,
+            highlightedNumber = finalValue,
+            highlightedCells = highlightedCells
         )
     }
 
@@ -312,7 +324,17 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = emptySet()
 
-        updateState(board = game.getBoard(), notes = newNotes)
+        // 셀을 지운 후 업데이트된 보드를 가져와서 현재 선택된 셀에 대한 하이라이트 재계산
+        val updatedBoard = game.getBoard()
+        val currentCellValue = updatedBoard[row][col] // 0이 될 것임
+        val highlightedCells = calculateHighlightedCells(currentCellValue, updatedBoard)
+
+        updateState(
+            board = updatedBoard, 
+            notes = newNotes,
+            highlightedNumber = currentCellValue,
+            highlightedCells = highlightedCells
+        )
     }
 
     fun newGame() {
