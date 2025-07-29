@@ -108,7 +108,10 @@ class SudokuViewModel : ViewModel() {
     }
 
     // 특정 숫자와 같은 숫자를 가진 모든 셀을 찾아서 하이라이트 셋으로 반환
-    private fun calculateHighlightedCells(targetNumber: Int, board: Array<IntArray>? = null): Set<Pair<Int, Int>> {
+    private fun calculateHighlightedCells(
+        targetNumber: Int,
+        board: Array<IntArray>? = null
+    ): Set<Pair<Int, Int>> {
         return if (targetNumber != 0) {
             buildSet {
                 val currentBoard = board ?: _state.value.board
@@ -142,7 +145,7 @@ class SudokuViewModel : ViewModel() {
     private fun calculateCompletedNumbers(): Set<Int> {
         val board = game.getBoard()
         val numberCounts = mutableMapOf<Int, Int>()
-        
+
         // 각 숫자의 개수 세기
         for (row in 0..8) {
             for (col in 0..8) {
@@ -152,7 +155,7 @@ class SudokuViewModel : ViewModel() {
                 }
             }
         }
-        
+
         // 9개가 모두 채워진 숫자들 반환
         return numberCounts.filter { it.value == 9 }.keys.toSet()
     }
@@ -330,7 +333,7 @@ class SudokuViewModel : ViewModel() {
         val highlightedCells = calculateHighlightedCells(currentCellValue, updatedBoard)
 
         updateState(
-            board = updatedBoard, 
+            board = updatedBoard,
             notes = newNotes,
             highlightedNumber = currentCellValue,
             highlightedCells = highlightedCells
@@ -681,6 +684,85 @@ class SudokuViewModel : ViewModel() {
         _state.value = _state.value.copy(
             showGameCompleteDialog = false
         )
+    }
+
+    fun useHint() {
+        val currentState = _state.value
+
+        // 셀이 선택되지 않은 경우 아무것도 하지 않음
+        if (currentState.selectedRow == -1 || currentState.selectedCol == -1) {
+            return
+        }
+
+        // 게임이 완료된 경우 아무것도 하지 않음
+        if (currentState.isGameComplete) {
+            return
+        }
+
+        val row = currentState.selectedRow
+        val col = currentState.selectedCol
+
+        // 현재 셀의 정답 가져오기
+        val correctValue = game.getHint(row, col)
+
+        // 현재 값과 정답이 같으면 아무것도 하지 않음
+        if (currentState.board[row][col] == correctValue) {
+            return
+        }
+
+        // Undo를 위한 현재 상태 저장
+        saveCurrentStateToUndoStack(row, col)
+
+        // 새로운 보드 생성 (정답으로 셀 업데이트)
+        val newBoard = Array(9) { r ->
+            IntArray(9) { c ->
+                if (r == row && c == col) {
+                    correctValue
+                } else {
+                    currentState.board[r][c]
+                }
+            }
+        }
+
+        // 노트에서 해당 셀의 노트 제거
+        val newNotes = Array(9) { r ->
+            Array(9) { c ->
+                if (r == row && c == col) {
+                    emptySet<Int>()
+                } else {
+                    currentState.notes[r][c]
+                }
+            }
+        }
+
+        // 게임 보드 업데이트
+        game.setCell(row, col, correctValue)
+
+        // 완성된 숫자들 계산
+        val completedNumbers = calculateCompletedNumbers()
+
+        // 하이라이트 업데이트
+        val highlightedCells = calculateHighlightedCells(correctValue)
+
+        // 게임 완료 확인
+        val isGameComplete = game.isGameComplete()
+
+        // 상태 업데이트
+        updateState(
+            board = newBoard,
+            notes = newNotes,
+            isGameComplete = isGameComplete,
+            completedNumbers = completedNumbers,
+            highlightedNumber = correctValue,
+            highlightedCells = highlightedCells,
+            showGameCompleteDialog = isGameComplete,
+            recalculateInvalidCells = true
+        )
+
+        // 게임 완료 시 타이머 정지
+        if (isGameComplete) {
+            stopTimer()
+        }
     }
 
     // 테스트용: 정답을 모두 입력하는 메서드

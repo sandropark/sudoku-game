@@ -51,6 +51,13 @@ class SudokuGame {
         return initialBoard[row][col] != 0
     }
 
+    fun getHint(row: Int, col: Int): Int {
+        require(row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
+            "Invalid cell coordinates: ($row, $col). Must be between 0 and ${BOARD_SIZE - 1}"
+        }
+        return solution[row][col]
+    }
+
     fun isCellValid(row: Int, col: Int): Boolean {
         require(row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
             "Invalid cell coordinates: ($row, $col). Must be between 0 and ${BOARD_SIZE - 1}"
