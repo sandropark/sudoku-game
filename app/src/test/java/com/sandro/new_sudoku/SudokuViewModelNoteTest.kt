@@ -284,4 +284,334 @@ class SudokuViewModelNoteTest {
         assertTrue("노트가 추가되어야 함", stateWithNotes.notes[row][col].containsAll(setOf(1, 2, 3)))
         assertEquals("일반 숫자는 0이어야 함", 0, stateWithNotes.board[row][col])
     }
+
+    @Test
+    fun `숫자 입력 시 같은 행의 노트에서 해당 숫자가 제거되는지 테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀 2개 찾기 (같은 행)
+        val state = viewModel.state.first()
+        var targetRow = -1
+        var inputCol = -1
+        var noteCol = -1
+
+        // 같은 행에서 빈 셀 2개 찾기
+        for (row in 0..8) {
+            val emptyCells = mutableListOf<Int>()
+            for (col in 0..8) {
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    emptyCells.add(col)
+                }
+            }
+            if (emptyCells.size >= 2) {
+                targetRow = row
+                inputCol = emptyCells[0]
+                noteCol = emptyCells[1]
+                break
+            }
+        }
+
+        assertTrue("같은 행에 빈 셀이 2개 이상 있어야 함", targetRow != -1)
+
+        // noteCol에 노트 추가
+        viewModel.selectCell(targetRow, noteCol)
+        viewModel.toggleNoteMode()
+        viewModel.addNoteNumber(5)
+        viewModel.addNoteNumber(7)
+
+        // 노트가 추가되었는지 확인
+        val stateWithNotes = viewModel.state.first()
+        assertTrue(
+            "노트에 5와 7이 추가되어야 함",
+            stateWithNotes.notes[targetRow][noteCol].containsAll(setOf(5, 7))
+        )
+
+        // inputCol에 숫자 5 입력
+        viewModel.toggleNoteMode() // 노트 모드 해제
+        viewModel.selectCell(targetRow, inputCol)
+        viewModel.setCellValue(5)
+
+        // 같은 행의 다른 셀의 노트에서 5가 제거되었는지 확인
+        val finalState = viewModel.state.first()
+        assertFalse(
+            "같은 행의 노트에서 5가 제거되어야 함",
+            finalState.notes[targetRow][noteCol].contains(5)
+        )
+        assertTrue(
+            "같은 행의 노트에서 7은 남아있어야 함",
+            finalState.notes[targetRow][noteCol].contains(7)
+        )
+    }
+
+    @Test
+    fun `숫자 입력 시 같은 열의 노트에서 해당 숫자가 제거되는지 테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀 2개 찾기 (같은 열)
+        val state = viewModel.state.first()
+        var targetCol = -1
+        var inputRow = -1
+        var noteRow = -1
+
+        // 같은 열에서 빈 셀 2개 찾기
+        for (col in 0..8) {
+            val emptyCells = mutableListOf<Int>()
+            for (row in 0..8) {
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    emptyCells.add(row)
+                }
+            }
+            if (emptyCells.size >= 2) {
+                targetCol = col
+                inputRow = emptyCells[0]
+                noteRow = emptyCells[1]
+                break
+            }
+        }
+
+        assertTrue("같은 열에 빈 셀이 2개 이상 있어야 함", targetCol != -1)
+
+        // noteRow에 노트 추가
+        viewModel.selectCell(noteRow, targetCol)
+        viewModel.toggleNoteMode()
+        viewModel.addNoteNumber(3)
+        viewModel.addNoteNumber(8)
+
+        // 노트가 추가되었는지 확인
+        val stateWithNotes = viewModel.state.first()
+        assertTrue(
+            "노트에 3과 8이 추가되어야 함",
+            stateWithNotes.notes[noteRow][targetCol].containsAll(setOf(3, 8))
+        )
+
+        // inputRow에 숫자 3 입력
+        viewModel.toggleNoteMode() // 노트 모드 해제
+        viewModel.selectCell(inputRow, targetCol)
+        viewModel.setCellValue(3)
+
+        // 같은 열의 다른 셀의 노트에서 3이 제거되었는지 확인
+        val finalState = viewModel.state.first()
+        assertFalse(
+            "같은 열의 노트에서 3이 제거되어야 함",
+            finalState.notes[noteRow][targetCol].contains(3)
+        )
+        assertTrue(
+            "같은 열의 노트에서 8은 남아있어야 함",
+            finalState.notes[noteRow][targetCol].contains(8)
+        )
+    }
+
+    @Test
+    fun `숫자 입력 시 같은 3x3 박스의 노트에서 해당 숫자가 제거되는지 테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀 2개 찾기 (같은 3x3 박스)
+        val state = viewModel.state.first()
+        var inputRow = -1
+        var inputCol = -1
+        var noteRow = -1
+        var noteCol = -1
+
+        // 좌상단 3x3 박스에서 빈 셀 2개 찾기
+        val emptyCells = mutableListOf<Pair<Int, Int>>()
+        for (row in 0..2) {
+            for (col in 0..2) {
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    emptyCells.add(Pair(row, col))
+                }
+            }
+        }
+
+        assertTrue("같은 3x3 박스에 빈 셀이 2개 이상 있어야 함", emptyCells.size >= 2)
+
+        inputRow = emptyCells[0].first
+        inputCol = emptyCells[0].second
+        noteRow = emptyCells[1].first
+        noteCol = emptyCells[1].second
+
+        // noteRow, noteCol에 노트 추가
+        viewModel.selectCell(noteRow, noteCol)
+        viewModel.toggleNoteMode()
+        viewModel.addNoteNumber(6)
+        viewModel.addNoteNumber(9)
+
+        // 노트가 추가되었는지 확인
+        val stateWithNotes = viewModel.state.first()
+        assertTrue(
+            "노트에 6과 9가 추가되어야 함",
+            stateWithNotes.notes[noteRow][noteCol].containsAll(setOf(6, 9))
+        )
+
+        // inputRow, inputCol에 숫자 6 입력
+        viewModel.toggleNoteMode() // 노트 모드 해제
+        viewModel.selectCell(inputRow, inputCol)
+        viewModel.setCellValue(6)
+
+        // 같은 3x3 박스의 다른 셀의 노트에서 6이 제거되었는지 확인
+        val finalState = viewModel.state.first()
+        assertFalse(
+            "같은 3x3 박스의 노트에서 6이 제거되어야 함",
+            finalState.notes[noteRow][noteCol].contains(6)
+        )
+        assertTrue(
+            "같은 3x3 박스의 노트에서 9는 남아있어야 함",
+            finalState.notes[noteRow][noteCol].contains(9)
+        )
+    }
+
+    @Test
+    fun `숫자 입력 시 복합적인 관련 셀들의 노트에서 해당 숫자가 제거되는지 테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 테스트를 위한 특정 위치 설정 (0, 0)에 숫자 입력, 다른 위치들에 노트 설정
+        val inputRow = 0
+        val inputCol = 0
+        val state = viewModel.state.first()
+
+        // (0, 0)이 비어있는지 확인하고, 비어있지 않다면 다른 위치 찾기
+        if (state.board[inputRow][inputCol] != 0 || viewModel.isInitialCell(inputRow, inputCol)) {
+            // 다른 빈 셀 찾기
+            var found = false
+            for (row in 0..8) {
+                for (col in 0..8) {
+                    if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                        found = true
+                        break
+                    }
+                }
+                if (found) break
+            }
+            assertTrue("테스트를 위한 빈 셀이 있어야 함", found)
+        }
+
+        // 같은 행, 열, 3x3 박스의 다른 빈 셀들에 노트 추가
+        val testNumber = 4
+
+        // 같은 행의 다른 셀에 노트 추가 (0, 3)
+        if (state.board[0][3] == 0 && !viewModel.isInitialCell(0, 3)) {
+            viewModel.selectCell(0, 3)
+            viewModel.toggleNoteMode()
+            viewModel.addNoteNumber(testNumber)
+            viewModel.addNoteNumber(7)
+        }
+
+        // 같은 열의 다른 셀에 노트 추가 (3, 0)
+        if (state.board[3][0] == 0 && !viewModel.isInitialCell(3, 0)) {
+            viewModel.selectCell(3, 0)
+            if (!viewModel.state.first().isNoteMode) viewModel.toggleNoteMode()
+            viewModel.addNoteNumber(testNumber)
+            viewModel.addNoteNumber(8)
+        }
+
+        // 같은 3x3 박스의 다른 셀에 노트 추가 (1, 1)
+        if (state.board[1][1] == 0 && !viewModel.isInitialCell(1, 1)) {
+            viewModel.selectCell(1, 1)
+            if (!viewModel.state.first().isNoteMode) viewModel.toggleNoteMode()
+            viewModel.addNoteNumber(testNumber)
+            viewModel.addNoteNumber(9)
+        }
+
+        // 노트 모드 해제 후 (0, 0)에 숫자 입력
+        viewModel.toggleNoteMode()
+        viewModel.selectCell(inputRow, inputCol)
+        viewModel.setCellValue(testNumber)
+
+        // 관련된 모든 셀의 노트에서 해당 숫자가 제거되었는지 확인
+        val finalState = viewModel.state.first()
+
+        // 검증을 위해 각 셀이 비어있고 초기셀이 아닌 경우만 확인
+        if (state.board[0][3] == 0 && !viewModel.isInitialCell(0, 3)) {
+            assertFalse(
+                "같은 행의 노트에서 숫자가 제거되어야 함",
+                finalState.notes[0][3].contains(testNumber)
+            )
+            assertTrue(
+                "다른 노트는 남아있어야 함",
+                finalState.notes[0][3].contains(7)
+            )
+        }
+
+        if (state.board[3][0] == 0 && !viewModel.isInitialCell(3, 0)) {
+            assertFalse(
+                "같은 열의 노트에서 숫자가 제거되어야 함",
+                finalState.notes[3][0].contains(testNumber)
+            )
+            assertTrue(
+                "다른 노트는 남아있어야 함",
+                finalState.notes[3][0].contains(8)
+            )
+        }
+
+        if (state.board[1][1] == 0 && !viewModel.isInitialCell(1, 1)) {
+            assertFalse(
+                "같은 3x3 박스의 노트에서 숫자가 제거되어야 함",
+                finalState.notes[1][1].contains(testNumber)
+            )
+            assertTrue(
+                "다른 노트는 남아있어야 함",
+                finalState.notes[1][1].contains(9)
+            )
+        }
+    }
+
+    @Test
+    fun `숫자를 0으로 지울 때는 노트 제거가 발생하지 않는지 테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀 2개 찾기 (같은 행)
+        val state = viewModel.state.first()
+        var targetRow = -1
+        var inputCol = -1
+        var noteCol = -1
+
+        for (row in 0..8) {
+            val emptyCells = mutableListOf<Int>()
+            for (col in 0..8) {
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    emptyCells.add(col)
+                }
+            }
+            if (emptyCells.size >= 2) {
+                targetRow = row
+                inputCol = emptyCells[0]
+                noteCol = emptyCells[1]
+                break
+            }
+        }
+
+        assertTrue("같은 행에 빈 셀이 2개 이상 있어야 함", targetRow != -1)
+
+        // inputCol에 숫자 5 입력
+        viewModel.selectCell(targetRow, inputCol)
+        viewModel.setCellValue(5)
+
+        // noteCol에 노트 추가 (5 포함)
+        viewModel.selectCell(targetRow, noteCol)
+        viewModel.toggleNoteMode()
+        viewModel.addNoteNumber(5)
+        viewModel.addNoteNumber(7)
+
+        // 노트가 추가되었는지 확인
+        val stateWithNotes = viewModel.state.first()
+        assertTrue(
+            "노트에 5와 7이 추가되어야 함",
+            stateWithNotes.notes[targetRow][noteCol].containsAll(setOf(5, 7))
+        )
+
+        // inputCol의 숫자를 지움 (0으로 설정)
+        viewModel.toggleNoteMode() // 노트 모드 해제
+        viewModel.selectCell(targetRow, inputCol)
+        viewModel.clearCell() // 또는 setCellValue(0)
+
+        // 노트에서 5가 제거되지 않았는지 확인 (숫자를 지울 때는 노트 제거 안 함)
+        val finalState = viewModel.state.first()
+        assertTrue(
+            "숫자를 지울 때는 노트가 제거되지 않아야 함",
+            finalState.notes[targetRow][noteCol].contains(5)
+        )
+        assertTrue(
+            "다른 노트도 남아있어야 함",
+            finalState.notes[targetRow][noteCol].contains(7)
+        )
+    }
 }

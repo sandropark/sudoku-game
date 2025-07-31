@@ -268,6 +268,9 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = emptySet()
 
+        // 숫자 입력 시 관련 셀들의 노트에서 해당 숫자 제거
+        val notesAfterRemoval = removeNotesForRelatedCells(row, col, finalValue, newNotes)
+
         // 실수 카운트 업데이트
         var newMistakeCount = currentState.mistakeCount
         var showGameOverDialog = currentState.showGameOverDialog
@@ -297,7 +300,7 @@ class SudokuViewModel : ViewModel() {
 
         updateState(
             board = updatedBoard,
-            notes = newNotes,
+            notes = notesAfterRemoval,
             mistakeCount = newMistakeCount,
             showGameOverDialog = showGameOverDialog,
             isGameComplete = gameComplete,
@@ -511,6 +514,45 @@ class SudokuViewModel : ViewModel() {
         newNotes[row][col] = currentNotes.toSet()
 
         updateState(notes = newNotes, recalculateInvalidCells = false)
+    }
+
+    // 숫자 입력 시 관련된 셀들(같은 행, 열, 3x3 박스)의 노트에서 해당 숫자를 제거
+    private fun removeNotesForRelatedCells(
+        inputRow: Int,
+        inputCol: Int,
+        value: Int,
+        notes: Array<Array<Set<Int>>>
+    ): Array<Array<Set<Int>>> {
+        if (value == 0) return notes // 0으로 지우는 경우 노트 제거 안 함
+
+        val newNotes = createDeepCopyNotes(notes)
+
+        // 같은 행의 모든 셀에서 해당 숫자를 노트에서 제거
+        for (col in 0..8) {
+            if (col != inputCol && newNotes[inputRow][col].contains(value)) {
+                newNotes[inputRow][col] = newNotes[inputRow][col] - value
+            }
+        }
+
+        // 같은 열의 모든 셀에서 해당 숫자를 노트에서 제거
+        for (row in 0..8) {
+            if (row != inputRow && newNotes[row][inputCol].contains(value)) {
+                newNotes[row][inputCol] = newNotes[row][inputCol] - value
+            }
+        }
+
+        // 같은 3x3 박스의 모든 셀에서 해당 숫자를 노트에서 제거
+        val boxRow = (inputRow / 3) * 3
+        val boxCol = (inputCol / 3) * 3
+        for (row in boxRow until boxRow + 3) {
+            for (col in boxCol until boxCol + 3) {
+                if ((row != inputRow || col != inputCol) && newNotes[row][col].contains(value)) {
+                    newNotes[row][col] = newNotes[row][col] - value
+                }
+            }
+        }
+
+        return newNotes
     }
 
     // 유틸리티 메서드들
@@ -735,6 +777,9 @@ class SudokuViewModel : ViewModel() {
             }
         }
 
+        // 힌트 사용 시에도 관련 셀들의 노트에서 해당 숫자 제거
+        val notesAfterRemoval = removeNotesForRelatedCells(row, col, correctValue, newNotes)
+
         // 게임 보드 업데이트
         game.setCell(row, col, correctValue)
 
@@ -750,7 +795,7 @@ class SudokuViewModel : ViewModel() {
         // 상태 업데이트
         updateState(
             board = newBoard,
-            notes = newNotes,
+            notes = notesAfterRemoval,
             isGameComplete = isGameComplete,
             completedNumbers = completedNumbers,
             highlightedNumber = correctValue,
