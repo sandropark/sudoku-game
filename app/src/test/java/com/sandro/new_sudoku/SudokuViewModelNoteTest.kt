@@ -3,6 +3,7 @@ package com.sandro.new_sudoku
 import com.sandro.new_sudoku.helpers.SudokuTestHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -462,96 +463,148 @@ class SudokuViewModelNoteTest {
     @Test
     fun `숫자 입력 시 복합적인 관련 셀들의 노트에서 해당 숫자가 제거되는지 테스트`() = runTest {
         val viewModel = SudokuTestHelper.createTestViewModel()
-
-        // 테스트를 위한 특정 위치 설정 (0, 0)에 숫자 입력, 다른 위치들에 노트 설정
-        val inputRow = 0
-        val inputCol = 0
         val state = viewModel.state.first()
 
-        // (0, 0)이 비어있는지 확인하고, 비어있지 않다면 다른 위치 찾기
-        if (state.board[inputRow][inputCol] != 0 || viewModel.isInitialCell(inputRow, inputCol)) {
-            // 다른 빈 셀 찾기
-            var found = false
-            for (row in 0..8) {
-                for (col in 0..8) {
-                    if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
-                        found = true
-                        break
-                    }
+        // 더 안정적인 테스트를 위해 실제로 빈 셀들을 찾아서 테스트
+        var inputRow = -1
+        var inputCol = -1
+        var sameRowCell: Pair<Int, Int>? = null
+        var sameColCell: Pair<Int, Int>? = null
+        var sameBoxCell: Pair<Int, Int>? = null
+
+        // 입력할 빈 셀 찾기
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    inputRow = row
+                    inputCol = col
+                    break
                 }
-                if (found) break
             }
-            assertTrue("테스트를 위한 빈 셀이 있어야 함", found)
+            if (inputRow != -1) break
         }
 
-        // 같은 행, 열, 3x3 박스의 다른 빈 셀들에 노트 추가
+        assertTrue("테스트를 위한 빈 셀이 있어야 함", inputRow != -1)
+
+        // 같은 행의 다른 빈 셀 찾기
+        for (col in 0..8) {
+            if (col != inputCol && state.board[inputRow][col] == 0 && !viewModel.isInitialCell(
+                    inputRow,
+                    col
+                )
+            ) {
+                sameRowCell = Pair(inputRow, col)
+                break
+            }
+        }
+
+        // 같은 열의 다른 빈 셀 찾기
+        for (row in 0..8) {
+            if (row != inputRow && state.board[row][inputCol] == 0 && !viewModel.isInitialCell(
+                    row,
+                    inputCol
+                )
+            ) {
+                sameColCell = Pair(row, inputCol)
+                break
+            }
+        }
+
+        // 같은 3x3 박스의 다른 빈 셀 찾기
+        val boxRow = (inputRow / 3) * 3
+        val boxCol = (inputCol / 3) * 3
+        for (row in boxRow until boxRow + 3) {
+            for (col in boxCol until boxCol + 3) {
+                if ((row != inputRow || col != inputCol) &&
+                    state.board[row][col] == 0 &&
+                    !viewModel.isInitialCell(row, col)
+                ) {
+                    sameBoxCell = Pair(row, col)
+                    break
+                }
+            }
+            if (sameBoxCell != null) break
+        }
+
         val testNumber = 4
 
-        // 같은 행의 다른 셀에 노트 추가 (0, 3)
-        if (state.board[0][3] == 0 && !viewModel.isInitialCell(0, 3)) {
-            viewModel.selectCell(0, 3)
+        // 같은 행의 셀에 노트 추가
+        sameRowCell?.let { (row, col) ->
+            viewModel.selectCell(row, col)
             viewModel.toggleNoteMode()
             viewModel.addNoteNumber(testNumber)
             viewModel.addNoteNumber(7)
+            advanceUntilIdle()
         }
 
-        // 같은 열의 다른 셀에 노트 추가 (3, 0)
-        if (state.board[3][0] == 0 && !viewModel.isInitialCell(3, 0)) {
-            viewModel.selectCell(3, 0)
+        // 같은 열의 셀에 노트 추가  
+        sameColCell?.let { (row, col) ->
+            viewModel.selectCell(row, col)
             if (!viewModel.state.first().isNoteMode) viewModel.toggleNoteMode()
             viewModel.addNoteNumber(testNumber)
             viewModel.addNoteNumber(8)
+            advanceUntilIdle()
         }
 
-        // 같은 3x3 박스의 다른 셀에 노트 추가 (1, 1)
-        if (state.board[1][1] == 0 && !viewModel.isInitialCell(1, 1)) {
-            viewModel.selectCell(1, 1)
+        // 같은 3x3 박스의 셀에 노트 추가
+        sameBoxCell?.let { (row, col) ->
+            viewModel.selectCell(row, col)
             if (!viewModel.state.first().isNoteMode) viewModel.toggleNoteMode()
             viewModel.addNoteNumber(testNumber)
             viewModel.addNoteNumber(9)
+            advanceUntilIdle()
         }
 
-        // 노트 모드 해제 후 (0, 0)에 숫자 입력
-        viewModel.toggleNoteMode()
+        // 노트 모드 해제 후 입력 셀에 숫자 입력
+        if (viewModel.state.first().isNoteMode) viewModel.toggleNoteMode()
         viewModel.selectCell(inputRow, inputCol)
         viewModel.setCellValue(testNumber)
+        advanceUntilIdle()
 
         // 관련된 모든 셀의 노트에서 해당 숫자가 제거되었는지 확인
         val finalState = viewModel.state.first()
 
-        // 검증을 위해 각 셀이 비어있고 초기셀이 아닌 경우만 확인
-        if (state.board[0][3] == 0 && !viewModel.isInitialCell(0, 3)) {
+        // 같은 행 셀 검증
+        sameRowCell?.let { (row, col) ->
             assertFalse(
                 "같은 행의 노트에서 숫자가 제거되어야 함",
-                finalState.notes[0][3].contains(testNumber)
+                finalState.notes[row][col].contains(testNumber)
             )
             assertTrue(
                 "다른 노트는 남아있어야 함",
-                finalState.notes[0][3].contains(7)
+                finalState.notes[row][col].contains(7)
             )
         }
 
-        if (state.board[3][0] == 0 && !viewModel.isInitialCell(3, 0)) {
+        // 같은 열 셀 검증
+        sameColCell?.let { (row, col) ->
             assertFalse(
                 "같은 열의 노트에서 숫자가 제거되어야 함",
-                finalState.notes[3][0].contains(testNumber)
+                finalState.notes[row][col].contains(testNumber)
             )
             assertTrue(
                 "다른 노트는 남아있어야 함",
-                finalState.notes[3][0].contains(8)
+                finalState.notes[row][col].contains(8)
             )
         }
 
-        if (state.board[1][1] == 0 && !viewModel.isInitialCell(1, 1)) {
+        // 같은 3x3 박스 셀 검증
+        sameBoxCell?.let { (row, col) ->
             assertFalse(
                 "같은 3x3 박스의 노트에서 숫자가 제거되어야 함",
-                finalState.notes[1][1].contains(testNumber)
+                finalState.notes[row][col].contains(testNumber)
             )
             assertTrue(
                 "다른 노트는 남아있어야 함",
-                finalState.notes[1][1].contains(9)
+                finalState.notes[row][col].contains(9)
             )
         }
+
+        // 최소한 하나의 검증은 수행되어야 함
+        assertTrue(
+            "최소한 하나의 관련 셀이 있어야 함",
+            sameRowCell != null || sameColCell != null || sameBoxCell != null
+        )
     }
 
     @Test
@@ -613,5 +666,38 @@ class SudokuViewModelNoteTest {
             "다른 노트도 남아있어야 함",
             finalState.notes[targetRow][noteCol].contains(7)
         )
+    }
+
+    @Test
+    fun `숫자가 입력된 셀에 노트를 입력하면 하이라이트가 초기화되는지 테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+
+        // 빈 셀 찾기
+        val state = viewModel.state.first()
+        val emptyCell = SudokuTestHelper.findEmptyCell(state.board, viewModel)
+        assertTrue("빈 셀을 찾을 수 있어야 함", emptyCell != null)
+        val (row, col) = emptyCell!!
+
+        // 셀 선택 후 숫자 5 입력
+        viewModel.selectCell(row, col)
+        viewModel.setCellValue(5)
+
+        // 숫자 입력 후 하이라이트 상태 확인
+        val stateAfterNumber = viewModel.state.first()
+        assertEquals("하이라이트된 숫자가 5여야 함", 5, stateAfterNumber.highlightedNumber)
+        assertTrue("5가 있는 셀들이 하이라이트되어야 함", stateAfterNumber.highlightedCells.isNotEmpty())
+
+        // 노트 모드 활성화 후 노트 추가
+        viewModel.toggleNoteMode()
+        viewModel.addNoteNumber(1)
+
+        // 노트 입력 후 하이라이트가 초기화되었는지 확인
+        val stateAfterNote = viewModel.state.first()
+        assertEquals("숫자가 0으로 변경되어야 함", 0, stateAfterNote.board[row][col])
+        assertTrue("노트가 추가되어야 함", stateAfterNote.notes[row][col].contains(1))
+
+        // 하이라이트가 초기화되었는지 확인 (현재는 실패할 것임)
+        assertEquals("하이라이트된 숫자가 0으로 초기화되어야 함", 0, stateAfterNote.highlightedNumber)
+        assertTrue("하이라이트된 셀들이 비어있어야 함", stateAfterNote.highlightedCells.isEmpty())
     }
 }

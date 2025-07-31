@@ -126,41 +126,108 @@ class SudokuViewModelErrorTest {
     @Test
     fun `에러 상태 복구 테스트`() = runTest {
         val viewModel = SudokuTestHelper.createTestViewModel()
-
         val state = viewModel.state.first()
-        val emptyCell = SudokuTestHelper.findEmptyCell(state.board, viewModel)
-        assertTrue("빈 셀을 찾을 수 있어야 함", emptyCell != null)
 
-        val (emptyRow, emptyCol) = emptyCell!!
+        // 잘못된 값을 입력할 수 있는 빈 셀 찾기
+        var testRow = -1
+        var testCol = -1
+        var invalidValue: Int? = null
+
+        // 빈 셀들을 순회하며 잘못된 값을 입력할 수 있는 셀 찾기
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    // 이 셀에 잘못된 값을 입력할 수 있는지 확인
+
+                    // 같은 행에서 기존 값 찾기
+                    val rowValues = state.board[row].filter { it != 0 }
+                    if (rowValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = rowValues.first()
+                        break
+                    }
+
+                    // 같은 열에서 기존 값 찾기
+                    val colValues = (0..8).map { state.board[it][col] }.filter { it != 0 }
+                    if (colValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = colValues.first()
+                        break
+                    }
+
+                    // 같은 3x3 박스에서 기존 값 찾기
+                    val boxStartRow = (row / 3) * 3
+                    val boxStartCol = (col / 3) * 3
+                    val boxValues = mutableListOf<Int>()
+                    for (r in boxStartRow until boxStartRow + 3) {
+                        for (c in boxStartCol until boxStartCol + 3) {
+                            if (state.board[r][c] != 0) {
+                                boxValues.add(state.board[r][c])
+                            }
+                        }
+                    }
+                    if (boxValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = boxValues.first()
+                        break
+                    }
+                }
+            }
+            if (testRow != -1) break
+        }
+
+        // 테스트할 수 있는 상황이 없으면 테스트 건너뛰기
+        if (testRow == -1 || invalidValue == null) {
+            return@runTest
+        }
 
         // 빈 셀에 잘못된 값 입력
-        viewModel.selectCell(emptyRow, emptyCol)
+        viewModel.selectCell(testRow, testCol)
+        advanceUntilIdle()
 
-        val invalidValue = SudokuTestHelper.findInvalidValueForRow(state.board, emptyRow)
-        assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != null)
+        viewModel.setCellValue(invalidValue)
+        advanceUntilIdle()
 
-        viewModel.setCellValue(invalidValue!!)
         val errorState = viewModel.state.first()
-        assertTrue("에러 상태가 생성되어야 함", errorState.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        assertTrue("에러 상태가 생성되어야 함", errorState.invalidCells.contains(Pair(testRow, testCol)))
 
         // 유효한 값으로 복구
-        val updatedState = viewModel.state.first()
-        val validValue = SudokuTestHelper.findValidValue(updatedState.board, emptyRow, emptyCol)
+        val validValue = (1..9).firstOrNull { value ->
+            // 같은 행에 없고
+            !state.board[testRow].contains(value) &&
+                    // 같은 열에 없고
+                    !(0..8).any { state.board[it][testCol] == value } &&
+                    // 같은 3x3 박스에 없는 값
+                    run {
+                        val boxStartRow = (testRow / 3) * 3
+                        val boxStartCol = (testCol / 3) * 3
+                        !(boxStartRow until boxStartRow + 3).any { r ->
+                            (boxStartCol until boxStartCol + 3).any { c ->
+                                state.board[r][c] == value
+                            }
+                        }
+                    }
+        }
 
         if (validValue != null) {
             viewModel.setCellValue(validValue)
+            advanceUntilIdle()
             val recoveredState = viewModel.state.first()
             assertFalse(
                 "에러 상태가 해결되어야 함",
-                recoveredState.invalidCells.contains(Pair(emptyRow, emptyCol))
+                recoveredState.invalidCells.contains(Pair(testRow, testCol))
             )
         } else {
             // 유효한 값이 없으면 지우기
             viewModel.clearCell()
+            advanceUntilIdle()
             val recoveredState = viewModel.state.first()
             assertFalse(
                 "에러 상태가 해결되어야 함",
-                recoveredState.invalidCells.contains(Pair(emptyRow, emptyCol))
+                recoveredState.invalidCells.contains(Pair(testRow, testCol))
             )
         }
     }

@@ -96,8 +96,7 @@ class SudokuViewModel : ViewModel() {
                 highlightedNumber = selectedNumber,
                 highlightedCells = highlightedCells,
                 highlightedRows = setOf(row),
-                highlightedCols = setOf(col),
-                recalculateInvalidCells = false
+                highlightedCols = setOf(col)
             )
         }
 
@@ -490,12 +489,27 @@ class SudokuViewModel : ViewModel() {
         val newNotes = createDeepCopyNotes(currentState.notes)
         newNotes[row][col] = currentNotes.toSet()
 
-        // 일반 숫자를 지우고 노트만 표시
-        val newBoard = currentState.board.map { it.copyOf() }.toTypedArray()
-        newBoard[row][col] = 0
-        game.setCell(row, col, 0)
+        // 일반 숫자가 있는 경우에만 지우고 노트만 표시
+        val currentCellValue = currentState.board[row][col]
+        val needsBoardUpdate = currentCellValue != 0
 
-        updateState(board = newBoard, notes = newNotes)
+        val finalBoard = if (needsBoardUpdate) {
+            val newBoard = currentState.board.map { it.copyOf() }.toTypedArray()
+            newBoard[row][col] = 0
+            game.setCell(row, col, 0)
+            newBoard
+        } else {
+            null // updateState에서 기본값 사용
+        }
+
+        updateState(
+            board = finalBoard,
+            notes = newNotes,
+            highlightedNumber = if (needsBoardUpdate) 0 else currentCellValue,
+            highlightedCells = if (needsBoardUpdate) emptySet() else calculateHighlightedCells(
+                currentCellValue
+            )
+        )
     }
 
     fun removeNoteNumber(number: Int) {
