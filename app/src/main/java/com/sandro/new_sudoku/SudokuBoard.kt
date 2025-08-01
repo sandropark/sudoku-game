@@ -42,6 +42,7 @@ fun SudokuBoard(
     highlightedCells: Set<Pair<Int, Int>> = emptySet(),
     highlightedRows: Set<Int> = emptySet(),
     highlightedCols: Set<Int> = emptySet(),
+    highlightedNumber: Int = 0,
     onCellClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -89,6 +90,7 @@ fun SudokuBoard(
                             isColHighlighted = highlightedCols.contains(col),
                             notes = cellNotes,
                             isNoteMode = isNoteMode,
+                            highlightedNumber = highlightedNumber,
                             onClick = { onCellClick(row, col) },
                             cellSize = cellSize,
                             isEvenBox = isEvenBox,
@@ -112,6 +114,7 @@ fun SudokuCell(
     isColHighlighted: Boolean = false,
     notes: Set<Int> = emptySet(),
     isNoteMode: Boolean = false,
+    highlightedNumber: Int = 0,
     onClick: () -> Unit,
     cellSize: Dp,
     isEvenBox: Boolean,
@@ -185,7 +188,8 @@ fun SudokuCell(
             // 노트 표시 최적화
             NotesGrid(
                 notes = notes,
-                cellSize = cellSize
+                cellSize = cellSize,
+                highlightedNumber = highlightedNumber
             )
         } else if (hasValue) {
             // 일반 숫자 표시
@@ -203,7 +207,8 @@ fun SudokuCell(
 @Composable
 private fun NotesGrid(
     notes: Set<Int>,
-    cellSize: Dp
+    cellSize: Dp,
+    highlightedNumber: Int = 0
 ) {
     Box(
         modifier = Modifier
@@ -224,13 +229,20 @@ private fun NotesGrid(
                     for (noteCol in 0..2) {
                         val noteNum = remember(noteRow, noteCol) { noteRow * 3 + noteCol + 1 }
                         val isVisible = remember(notes, noteNum) { notes.contains(noteNum) }
+                        val isHighlighted = remember(highlightedNumber, noteNum) {
+                            highlightedNumber != 0 && noteNum == highlightedNumber
+                        }
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .background(
-                                    if (isVisible) Color.LightGray.copy(alpha = 0.15f) else Color.Transparent,
+                                    when {
+                                        isHighlighted && isVisible -> Color.Yellow.copy(alpha = 0.3f)
+                                        isVisible -> Color.LightGray.copy(alpha = 0.15f)
+                                        else -> Color.Transparent
+                                    },
                                     RoundedCornerShape(2.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -238,7 +250,9 @@ private fun NotesGrid(
                             if (isVisible) {
                                 Text(
                                     text = noteNum.toString(),
-                                    color = Color.DarkGray.copy(alpha = 0.9f),
+                                    color = if (isHighlighted) Color.Black else Color.DarkGray.copy(
+                                        alpha = 0.9f
+                                    ),
                                     fontSize = (cellSize.value * 0.22f).coerceAtLeast(9f).sp,
                                     fontWeight = FontWeight.SemiBold,
                                     textAlign = TextAlign.Center,
@@ -248,7 +262,9 @@ private fun NotesGrid(
                                             includeFontPadding = false
                                         )
                                     ),
-                                    modifier = Modifier.testTag("note_${noteNum}")
+                                    modifier = Modifier.testTag(
+                                        if (isHighlighted) "note_${noteNum}_highlighted" else "note_${noteNum}"
+                                    )
                                 )
                             }
                         }

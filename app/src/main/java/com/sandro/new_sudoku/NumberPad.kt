@@ -72,15 +72,15 @@ fun NumberButton(
     val backgroundColor = if (isCompleted) Color.Gray else Color(0xFF1976D2)
     val borderColor = if (isCompleted) Color.Gray else Color(0xFF1976D2)
     val textColor = if (isCompleted) Color.White.copy(alpha = 0.6f) else Color.White
-    
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .padding(2.dp)
             .background(backgroundColor, shape = RoundedCornerShape(8.dp))
             .border(2.dp, borderColor, shape = RoundedCornerShape(8.dp))
-            .clickable(enabled = !isCompleted) { 
-                if (!isCompleted) onClick() 
+            .clickable(enabled = !isCompleted) {
+                if (!isCompleted) onClick()
             }
             .testTag("number_btn_$number")
             .semantics {
