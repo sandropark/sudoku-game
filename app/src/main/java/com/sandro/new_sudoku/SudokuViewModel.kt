@@ -182,6 +182,68 @@ class SudokuViewModel : ViewModel() {
         return Array(9) { r -> Array(9) { c -> notes[r][c].toSet() } }
     }
 
+    /**
+     * 중앙화된 셀 변경 이벤트 처리
+     * 모든 셀 변경 시 필요한 상태 업데이트를 한 곳에서 처리
+     */
+    private fun handleCellChange(
+        row: Int,
+        col: Int,
+        newValue: Int,
+        newCellNotes: Set<Int>? = null,
+        updateMistakeCount: Boolean = false,
+        isValidMove: Boolean = true
+    ) {
+        val currentState = _state.value
+
+        // 1. 보드 업데이트
+        val success = game.setCell(row, col, newValue)
+        if (!success) return
+
+        val updatedBoard = game.getBoard()
+
+        // 2. 노트 업데이트
+        val newNotes = createDeepCopyNotes(currentState.notes)
+
+        // 현재 셀의 노트 업데이트
+        newNotes[row][col] = newCellNotes ?: emptySet()
+
+        // 숫자 입력 시 관련 셀들의 노트에서 해당 숫자 제거
+        val notesAfterRemoval = if (newValue != 0) {
+            removeNotesForRelatedCells(row, col, newValue, newNotes)
+        } else {
+            newNotes
+        }
+
+        // 3. 하이라이트 상태 업데이트 (항상 수행)
+        val highlightedCells = calculateHighlightedCells(newValue, updatedBoard)
+
+        // 4. 실수 카운트 업데이트
+        val newMistakeCount = if (updateMistakeCount && !isValidMove && newValue != 0) {
+            currentState.mistakeCount + 1
+        } else {
+            currentState.mistakeCount
+        }
+
+        // 5. 게임 오버 확인 (실수 3번 시 게임 오버)
+        val showGameOverDialog = newMistakeCount >= 3 && !currentState.isGameOver
+
+        // 6. 게임 완료 확인
+        val gameComplete = game.isGameComplete()
+
+        // 7. 모든 상태를 한 번에 업데이트
+        updateState(
+            board = updatedBoard,
+            notes = notesAfterRemoval,
+            mistakeCount = newMistakeCount,
+            showGameOverDialog = showGameOverDialog,
+            isGameComplete = gameComplete,
+            showGameCompleteDialog = if (gameComplete && !currentState.isGameComplete) true else null,
+            highlightedNumber = newValue,
+            highlightedCells = highlightedCells
+        )
+    }
+
     // 상태 업데이트 헬퍼 메서드 (최적화된 버전)
     private fun updateState(
         board: Array<IntArray>? = null,
@@ -258,54 +320,37 @@ class SudokuViewModel : ViewModel() {
         // 값 입력 전에 유효성 검사
         val isValidMove = game.isValidMove(row, col, finalValue)
 
-        val success = game.setCell(row, col, finalValue)
-        if (!success) {
-            return
+        // 토글로 지우는 경우는 실수로 계산하지 않음
+        val isToggleClear = (currentCellValue == value && value != 0)
+        val shouldUpdateMistakeCount = !isToggleClear
+
+        // 게임 완료시 타이머 정지
+        if (finalValue != 0) {
+            // 임시로 값을 설정해서 게임 완료 확인
+            val tempSuccess = game.setCell(row, col, finalValue)
+            if (tempSuccess && game.isGameComplete()) {
+                stopTimer()
+            }
+            // 원래 값으로 되돌림 (handleCellChange에서 다시 설정할 것)
+            game.setCell(row, col, currentCellValue)
         }
 
-        // 노트가 있는 경우 노트를 지우고 숫자만 표시
-        val newNotes = createDeepCopyNotes(currentState.notes)
-        newNotes[row][col] = emptySet()
-
-        // 숫자 입력 시 관련 셀들의 노트에서 해당 숫자 제거
-        val notesAfterRemoval = removeNotesForRelatedCells(row, col, finalValue, newNotes)
-
-        // 실수 카운트 업데이트
-        var newMistakeCount = currentState.mistakeCount
-        var showGameOverDialog = currentState.showGameOverDialog
-
-        // 토글로 지우는 경우(currentCellValue == value)는 실수로 계산하지 않음
-        val isToggleClear = (currentCellValue == value && value != 0)
-        if (!isValidMove && finalValue != 0 && !isToggleClear) { // 잘못된 값이고 지우기가 아니며 토글이 아닌 경우
-            newMistakeCount += 1
+        // 실수 3번 시 타이머 정지
+        if (shouldUpdateMistakeCount && !isValidMove && finalValue != 0) {
+            val newMistakeCount = currentState.mistakeCount + 1
             if (newMistakeCount >= 3) {
-                showGameOverDialog = true
-                // 실수 3번 시 타이머 정지
                 stopTimer()
             }
         }
 
-        // 게임 완료 확인
-        val gameComplete = game.isGameComplete()
-
-        // 게임 완료시 타이머 정지 및 완료 다이얼로그 표시
-        if (gameComplete && !currentState.isGameComplete) {
-            stopTimer()
-        }
-
-        // 업데이트된 보드를 가져와서 하이라이트 계산
-        val updatedBoard = game.getBoard()
-        val highlightedCells = calculateHighlightedCells(finalValue, updatedBoard)
-
-        updateState(
-            board = updatedBoard,
-            notes = notesAfterRemoval,
-            mistakeCount = newMistakeCount,
-            showGameOverDialog = showGameOverDialog,
-            isGameComplete = gameComplete,
-            showGameCompleteDialog = if (gameComplete && !currentState.isGameComplete) true else null,
-            highlightedNumber = finalValue,
-            highlightedCells = highlightedCells
+        // 중앙화된 셀 변경 처리
+        handleCellChange(
+            row = row,
+            col = col,
+            newValue = finalValue,
+            newCellNotes = emptySet(), // 숫자 입력 시 노트는 항상 지움
+            updateMistakeCount = shouldUpdateMistakeCount,
+            isValidMove = isValidMove
         )
     }
 
@@ -321,24 +366,14 @@ class SudokuViewModel : ViewModel() {
 
         saveCurrentStateToUndoStack(row, col)
 
-        val success = game.setCell(row, col, 0)
-        if (!success) {
-            return
-        }
-
-        val newNotes = createDeepCopyNotes(currentState.notes)
-        newNotes[row][col] = emptySet()
-
-        // 셀을 지운 후 업데이트된 보드를 가져와서 현재 선택된 셀에 대한 하이라이트 재계산
-        val updatedBoard = game.getBoard()
-        val currentCellValue = updatedBoard[row][col] // 0이 될 것임
-        val highlightedCells = calculateHighlightedCells(currentCellValue, updatedBoard)
-
-        updateState(
-            board = updatedBoard,
-            notes = newNotes,
-            highlightedNumber = currentCellValue,
-            highlightedCells = highlightedCells
+        // 중앙화된 셀 변경 처리
+        handleCellChange(
+            row = row,
+            col = col,
+            newValue = 0, // 셀 지우기
+            newCellNotes = emptySet(), // 노트도 함께 지움
+            updateMistakeCount = false, // 지우기는 실수가 아님
+            isValidMove = true // 지우기는 항상 유효한 동작
         )
     }
 
@@ -485,30 +520,18 @@ class SudokuViewModel : ViewModel() {
             currentNotes.add(number)
         }
 
-        // 새로운 notes 배열 생성
-        val newNotes = createDeepCopyNotes(currentState.notes)
-        newNotes[row][col] = currentNotes.toSet()
-
-        // 일반 숫자가 있는 경우에만 지우고 노트만 표시
+        // 일반 숫자가 있는 경우 숫자를 지우고 노트만 표시
         val currentCellValue = currentState.board[row][col]
-        val needsBoardUpdate = currentCellValue != 0
+        val finalValue = if (currentCellValue != 0) 0 else currentCellValue
 
-        val finalBoard = if (needsBoardUpdate) {
-            val newBoard = currentState.board.map { it.copyOf() }.toTypedArray()
-            newBoard[row][col] = 0
-            game.setCell(row, col, 0)
-            newBoard
-        } else {
-            null // updateState에서 기본값 사용
-        }
-
-        updateState(
-            board = finalBoard,
-            notes = newNotes,
-            highlightedNumber = if (needsBoardUpdate) 0 else currentCellValue,
-            highlightedCells = if (needsBoardUpdate) emptySet() else calculateHighlightedCells(
-                currentCellValue
-            )
+        // 중앙화된 셀 변경 처리
+        handleCellChange(
+            row = row,
+            col = col,
+            newValue = finalValue,
+            newCellNotes = currentNotes.toSet(),
+            updateMistakeCount = false, // 노트 입력은 실수가 아님
+            isValidMove = true // 노트 입력은 항상 유효
         )
     }
 

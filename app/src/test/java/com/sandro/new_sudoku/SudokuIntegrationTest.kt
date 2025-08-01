@@ -458,47 +458,62 @@ class SudokuIntegrationTest {
     fun `에러 상태에서 정상 입력으로 복구 테스트`() = runTest {
         val viewModel = SudokuTestHelper.createTestViewModel()
 
-        // 빈 셀 찾기 (초기 셀이 아닌 셀)
+        // 잘못된 값을 입력할 수 있는 빈 셀을 동적으로 찾기
         var state = viewModel.state.first()
-        var emptyRow = -1
-        var emptyCol = -1
+        var testRow = -1
+        var testCol = -1
+        var invalidValue = -1
+
+        // 각 빈 셀에 대해 잘못된 값을 찾을 수 있는지 확인
         for (row in 0..8) {
             for (col in 0..8) {
-                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
-                    emptyRow = row
-                    emptyCol = col
-                    break
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    // 같은 행에서 기존 값 찾기
+                    val rowValues = state.board[row].filter { it != 0 }
+                    if (rowValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = rowValues.first()
+                        break
+                    }
+                    // 같은 열에서 기존 값 찾기
+                    val colValues = (0..8).map { state.board[it][col] }.filter { it != 0 }
+                    if (colValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = colValues.first()
+                        break
+                    }
+                    // 같은 3x3 박스에서 기존 값 찾기
+                    val boxRow = (row / 3) * 3
+                    val boxCol = (col / 3) * 3
+                    val boxValues = mutableListOf<Int>()
+                    for (r in boxRow until boxRow + 3) {
+                        for (c in boxCol until boxCol + 3) {
+                            if (state.board[r][c] != 0) {
+                                boxValues.add(state.board[r][c])
+                            }
+                        }
+                    }
+                    if (boxValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = boxValues.first()
+                        break
+                    }
                 }
             }
-            if (emptyRow != -1) break
-        }
-
-        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
-
-        // 빈 셀에 잘못된 값 입력
-        viewModel.selectCell(emptyRow, emptyCol)
-
-        // 같은 행에 이미 있는 숫자 찾기
-        var invalidValue = -1
-        for (value in 1..9) {
-            var foundInRow = false
-            for (col in 0..8) {
-                if (state.board[emptyRow][col] == value) {
-                    foundInRow = true
-                    break
-                }
-            }
-            if (foundInRow) {
-                invalidValue = value
-                break
-            }
+            if (testRow != -1) break
         }
 
         assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != -1)
 
+        // 빈 셀에 잘못된 값 입력
+        viewModel.selectCell(testRow, testCol)
+
         viewModel.setCellValue(invalidValue)
         state = viewModel.state.first()
-        assertTrue("에러 상태가 생성되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
+        assertTrue("에러 상태가 생성되어야 함", state.invalidCells.contains(Pair(testRow, testCol)))
 
         // 유효한 값으로 복구
         (1..9).firstOrNull { value ->
@@ -506,18 +521,18 @@ class SudokuIntegrationTest {
             val board = viewModel.state.value.board
             // 행 검사
             for (c in 0..8) {
-                if (c != emptyCol && board[emptyRow][c] == value) return@firstOrNull false
+                if (c != testCol && board[testRow][c] == value) return@firstOrNull false
             }
             // 열 검사
             for (r in 0..8) {
-                if (r != emptyRow && board[r][emptyCol] == value) return@firstOrNull false
+                if (r != testRow && board[r][testCol] == value) return@firstOrNull false
             }
             // 3x3 박스 검사
-            val boxRow = (emptyRow / 3) * 3
-            val boxCol = (emptyCol / 3) * 3
+            val boxRow = (testRow / 3) * 3
+            val boxCol = (testCol / 3) * 3
             for (r in boxRow until boxRow + 3) {
                 for (c in boxCol until boxCol + 3) {
-                    if ((r != emptyRow || c != emptyCol) && board[r][c] == value) return@firstOrNull false
+                    if ((r != testRow || c != testCol) && board[r][c] == value) return@firstOrNull false
                 }
             }
             true
@@ -527,8 +542,8 @@ class SudokuIntegrationTest {
         viewModel.clearCell()
         state = viewModel.state.first()
         // 셀을 지웠으므로 에러 상태가 해결되어야 함
-        assertFalse("에러 상태가 해결되어야 함", state.invalidCells.contains(Pair(emptyRow, emptyCol)))
-        assertEquals("셀이 지워져야 함", 0, state.board[emptyRow][emptyCol])
+        assertFalse("에러 상태가 해결되어야 함", state.invalidCells.contains(Pair(testRow, testCol)))
+        assertEquals("셀이 지워져야 함", 0, state.board[testRow][testCol])
     }
 
     @Test

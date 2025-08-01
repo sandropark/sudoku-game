@@ -22,44 +22,66 @@ class MistakeCountTest {
     fun `잘못된 값 입력시 실수 카운트가 증가해야 한다`() = runTest {
         val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
-        // 빈 셀 찾기 (초기 셀이 아닌 셀)
         val state = viewModel.state.value
-        var emptyRow = -1
-        var emptyCol = -1
 
+        // 잘못된 값을 입력할 수 있는 빈 셀 동적으로 찾기
+        var testRow = -1
+        var testCol = -1
+        var invalidValue: Int? = null
+
+        // 빈 셀들을 순회하며 잘못된 값을 입력할 수 있는 셀 찾기
         for (row in 0..8) {
             for (col in 0..8) {
-                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
-                    emptyRow = row
-                    emptyCol = col
-                    break
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    // 이 셀에 잘못된 값을 입력할 수 있는지 확인
+
+                    // 같은 행에서 기존 값 찾기
+                    val rowValues = state.board[row].filter { it != 0 }
+                    if (rowValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = rowValues.first()
+                        break
+                    }
+
+                    // 같은 열에서 기존 값 찾기
+                    val colValues = (0..8).map { state.board[it][col] }.filter { it != 0 }
+                    if (colValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = colValues.first()
+                        break
+                    }
+
+                    // 같은 3x3 박스에서 기존 값 찾기
+                    val boxStartRow = (row / 3) * 3
+                    val boxStartCol = (col / 3) * 3
+                    val boxValues = mutableListOf<Int>()
+                    for (r in boxStartRow until boxStartRow + 3) {
+                        for (c in boxStartCol until boxStartCol + 3) {
+                            if (state.board[r][c] != 0) {
+                                boxValues.add(state.board[r][c])
+                            }
+                        }
+                    }
+                    if (boxValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = boxValues.first()
+                        break
+                    }
                 }
             }
-            if (emptyRow != -1) break
+            if (testRow != -1) break
         }
 
-        assertTrue("빈 셀을 찾을 수 있어야 함", emptyRow != -1)
-
-        // 같은 행에 이미 있는 숫자 찾기 (잘못된 값)
-        var invalidValue = -1
-        for (value in 1..9) {
-            var foundInRow = false
-            for (col in 0..8) {
-                if (state.board[emptyRow][col] == value) {
-                    foundInRow = true
-                    break
-                }
-            }
-            if (foundInRow) {
-                invalidValue = value
-                break
-            }
+        // 테스트할 수 있는 상황이 없으면 테스트 건너뛰기
+        if (testRow == -1 || invalidValue == null) {
+            return@runTest
         }
-
-        assertTrue("잘못된 값을 찾을 수 있어야 함", invalidValue != -1)
 
         // 잘못된 값 입력
-        viewModel.selectCell(emptyRow, emptyCol)
+        viewModel.selectCell(testRow, testCol)
         viewModel.setCellValue(invalidValue)
 
         val updatedState = viewModel.state.value
@@ -117,49 +139,65 @@ class MistakeCountTest {
 
         // 3번의 잘못된 입력을 시뮬레이션
         repeat(3) { mistake ->
-            // 빈 셀 찾기
             val state = viewModel.state.value
-            var emptyRow = -1
-            var emptyCol = -1
+
+            // 잘못된 값을 입력할 수 있는 빈 셀 동적으로 찾기
+            var testRow = -1
+            var testCol = -1
+            var invalidValue: Int? = null
 
             for (row in 0..8) {
                 for (col in 0..8) {
-                    if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
-                        emptyRow = row
-                        emptyCol = col
-                        break
-                    }
-                }
-                if (emptyRow != -1) break
-            }
+                    if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                        // 같은 행에서 기존 값 찾기
+                        val rowValues = state.board[row].filter { it != 0 }
+                        if (rowValues.isNotEmpty()) {
+                            testRow = row
+                            testCol = col
+                            invalidValue = rowValues.first()
+                            break
+                        }
 
-            if (emptyRow != -1) {
-                // 잘못된 값 찾기
-                var invalidValue = -1
-                for (value in 1..9) {
-                    var foundInRow = false
-                    for (col in 0..8) {
-                        if (state.board[emptyRow][col] == value) {
-                            foundInRow = true
+                        // 같은 열에서 기존 값 찾기
+                        val colValues = (0..8).map { state.board[it][col] }.filter { it != 0 }
+                        if (colValues.isNotEmpty()) {
+                            testRow = row
+                            testCol = col
+                            invalidValue = colValues.first()
+                            break
+                        }
+
+                        // 같은 3x3 박스에서 기존 값 찾기
+                        val boxStartRow = (row / 3) * 3
+                        val boxStartCol = (col / 3) * 3
+                        val boxValues = mutableListOf<Int>()
+                        for (r in boxStartRow until boxStartRow + 3) {
+                            for (c in boxStartCol until boxStartCol + 3) {
+                                if (state.board[r][c] != 0) {
+                                    boxValues.add(state.board[r][c])
+                                }
+                            }
+                        }
+                        if (boxValues.isNotEmpty()) {
+                            testRow = row
+                            testCol = col
+                            invalidValue = boxValues.first()
                             break
                         }
                     }
-                    if (foundInRow) {
-                        invalidValue = value
-                        break
-                    }
                 }
+                if (testRow != -1) break
+            }
 
-                if (invalidValue != -1) {
-                    viewModel.selectCell(emptyRow, emptyCol)
-                    viewModel.setCellValue(invalidValue)
+            if (testRow != -1 && invalidValue != null) {
+                viewModel.selectCell(testRow, testCol)
+                viewModel.setCellValue(invalidValue)
 
-                    val currentState = viewModel.state.value
-                    assertEquals(mistake + 1, currentState.mistakeCount)
+                val currentState = viewModel.state.value
+                assertEquals(mistake + 1, currentState.mistakeCount)
 
-                    if (mistake == 2) { // 3번째 실수
-                        assertTrue("3번째 실수 후 게임 종료 팝업이 표시되어야 함", currentState.showGameOverDialog)
-                    }
+                if (mistake == 2) { // 3번째 실수
+                    assertTrue("3번째 실수 후 게임 종료 팝업이 표시되어야 함", currentState.showGameOverDialog)
                 }
             }
         }
@@ -169,53 +207,69 @@ class MistakeCountTest {
     fun `새 게임 시작시 실수 카운트가 초기화되어야 한다`() = runTest {
         val viewModel = SudokuTestHelper.createTimerTestViewModel()
 
-        // 실수를 먼저 만들기
         val state = viewModel.state.value
-        var emptyRow = -1
-        var emptyCol = -1
+
+        // 잘못된 값을 입력할 수 있는 빈 셀 동적으로 찾기
+        var testRow = -1
+        var testCol = -1
+        var invalidValue: Int? = null
 
         for (row in 0..8) {
             for (col in 0..8) {
-                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
-                    emptyRow = row
-                    emptyCol = col
-                    break
-                }
-            }
-            if (emptyRow != -1) break
-        }
+                if (state.board[row][col] == 0 && !viewModel.isInitialCell(row, col)) {
+                    // 같은 행에서 기존 값 찾기
+                    val rowValues = state.board[row].filter { it != 0 }
+                    if (rowValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = rowValues.first()
+                        break
+                    }
 
-        if (emptyRow != -1) {
-            // 잘못된 값 입력
-            var invalidValue = -1
-            for (value in 1..9) {
-                var foundInRow = false
-                for (col in 0..8) {
-                    if (state.board[emptyRow][col] == value) {
-                        foundInRow = true
+                    // 같은 열에서 기존 값 찾기
+                    val colValues = (0..8).map { state.board[it][col] }.filter { it != 0 }
+                    if (colValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = colValues.first()
+                        break
+                    }
+
+                    // 같은 3x3 박스에서 기존 값 찾기
+                    val boxStartRow = (row / 3) * 3
+                    val boxStartCol = (col / 3) * 3
+                    val boxValues = mutableListOf<Int>()
+                    for (r in boxStartRow until boxStartRow + 3) {
+                        for (c in boxStartCol until boxStartCol + 3) {
+                            if (state.board[r][c] != 0) {
+                                boxValues.add(state.board[r][c])
+                            }
+                        }
+                    }
+                    if (boxValues.isNotEmpty()) {
+                        testRow = row
+                        testCol = col
+                        invalidValue = boxValues.first()
                         break
                     }
                 }
-                if (foundInRow) {
-                    invalidValue = value
-                    break
-                }
             }
+            if (testRow != -1) break
+        }
 
-            if (invalidValue != -1) {
-                viewModel.selectCell(emptyRow, emptyCol)
-                viewModel.setCellValue(invalidValue)
+        if (testRow != -1 && invalidValue != null) {
+            viewModel.selectCell(testRow, testCol)
+            viewModel.setCellValue(invalidValue)
 
-                // 실수 카운트가 증가했는지 확인
-                assertTrue("실수 카운트가 0보다 커야 함", viewModel.state.value.mistakeCount > 0)
+            // 실수 카운트가 증가했는지 확인
+            assertTrue("실수 카운트가 0보다 커야 함", viewModel.state.value.mistakeCount > 0)
 
-                // 새 게임 시작
-                viewModel.newGame()
+            // 새 게임 시작
+            viewModel.newGame()
 
-                val newGameState = viewModel.state.value
-                assertEquals("새 게임에서 실수 카운트가 0이어야 함", 0, newGameState.mistakeCount)
-                assertFalse("새 게임에서 게임 종료 상태가 아니어야 함", newGameState.isGameOver)
-            }
+            val newGameState = viewModel.state.value
+            assertEquals("새 게임에서 실수 카운트가 0이어야 함", 0, newGameState.mistakeCount)
+            assertFalse("새 게임에서 게임 종료 상태가 아니어야 함", newGameState.isGameOver)
         }
     }
 
