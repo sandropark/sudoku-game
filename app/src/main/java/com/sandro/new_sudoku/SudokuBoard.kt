@@ -208,18 +208,18 @@ private fun NotesGrid(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(2.dp),
+            .padding(1.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
-                .size((cellSize.value * 0.85f).dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .size((cellSize.value * 0.92f).dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             for (noteRow in 0..2) {
                 Row(
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(0.dp)
+                    horizontalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     for (noteCol in 0..2) {
                         val noteNum = remember(noteRow, noteCol) { noteRow * 3 + noteCol + 1 }
@@ -228,17 +228,21 @@ private fun NotesGrid(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .aspectRatio(1f),
+                                .aspectRatio(1f)
+                                .background(
+                                    if (isVisible) Color.LightGray.copy(alpha = 0.15f) else Color.Transparent,
+                                    RoundedCornerShape(2.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isVisible) {
                                 Text(
                                     text = noteNum.toString(),
-                                    color = Color.Gray.copy(alpha = 0.8f),
-                                    fontSize = (cellSize.value * 0.18f).coerceAtLeast(7f).sp,
-                                    fontWeight = FontWeight.Medium,
+                                    color = Color.DarkGray.copy(alpha = 0.9f),
+                                    fontSize = (cellSize.value * 0.22f).coerceAtLeast(9f).sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     textAlign = TextAlign.Center,
-                                    lineHeight = (cellSize.value * 0.18f).coerceAtLeast(7f).sp,
+                                    lineHeight = (cellSize.value * 0.22f).coerceAtLeast(9f).sp,
                                     style = androidx.compose.ui.text.TextStyle(
                                         platformStyle = androidx.compose.ui.text.PlatformTextStyle(
                                             includeFontPadding = false
@@ -253,4 +257,4 @@ private fun NotesGrid(
             }
         }
     }
-} 
+}
