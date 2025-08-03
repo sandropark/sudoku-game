@@ -13,13 +13,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sandro.new_sudoku.ui.MainScreen
 import com.sandro.new_sudoku.ui.MainScreenViewModel
 import com.sandro.new_sudoku.ui.theme.SudokuTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,12 +40,18 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SudokuApp(
-    modifier: Modifier = Modifier,
-    mainScreenViewModel: MainScreenViewModel = viewModel(),
-    sudokuViewModel: SudokuViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val mainScreenViewModel: MainScreenViewModel = viewModel {
+        MainScreenViewModel(GameStateRepository(context))
+    }
+    val sudokuViewModel: SudokuViewModel = viewModel {
+        SudokuViewModel(GameStateRepository(context))
+    }
     var currentScreen by remember { mutableStateOf("main") }
     val mainScreenState by mainScreenViewModel.state.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     // 메인화면에서 게임화면으로 네비게이션
     LaunchedEffect(mainScreenState.shouldNavigateToGame) {
@@ -58,6 +67,7 @@ fun SudokuApp(
         if (sudokuState.shouldNavigateToMain) {
             currentScreen = "main"
             mainScreenViewModel.resetGameProgress()
+            mainScreenViewModel.refreshGameState() // 게임 상태 새로고침
             // shouldNavigateToMain 상태 초기화
             sudokuViewModel.resetNavigationState()
         }
@@ -75,7 +85,12 @@ fun SudokuApp(
                     currentScreen = "game"
                 },
                 onContinueGame = {
-                    currentScreen = "game"
+                    // 저장된 게임을 복원한 후 게임 화면으로 이동
+                    coroutineScope.launch {
+                        if (sudokuViewModel.loadSavedGame()) {
+                            currentScreen = "game"
+                        }
+                    }
                 }
             )
         }
@@ -86,6 +101,7 @@ fun SudokuApp(
                 viewModel = sudokuViewModel,
                 onBackToMain = {
                     currentScreen = "main"
+                    mainScreenViewModel.refreshGameState() // 게임 상태 새로고침
                 }
             )
         }

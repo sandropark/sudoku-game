@@ -36,9 +36,12 @@ data class SudokuState(
     val completedNumbers: Set<Int> = emptySet() // 보드에 9개 모두 입력된 완성된 숫자들
 )
 
-class SudokuViewModel : ViewModel() {
+class SudokuViewModel(
+    private val gameStateRepository: GameStateRepository? = null
+) : ViewModel() {
     private val game = SudokuGame()
     var isTestMode = false // 테스트 모드 플래그
+    private var currentDifficulty: DifficultyLevel = DifficultyLevel.EASY
 
     private val _state: MutableStateFlow<SudokuState> = MutableStateFlow(
         SudokuState(
@@ -242,6 +245,14 @@ class SudokuViewModel : ViewModel() {
             highlightedNumber = newValue,
             highlightedCells = highlightedCells
         )
+
+        // 8. 게임 완료가 아닌 경우 상태 저장
+        if (!gameComplete) {
+            saveGameStateAsync()
+        } else {
+            // 게임 완료 시 저장된 게임 삭제
+            clearSavedGameAsync()
+        }
     }
 
     // 상태 업데이트 헬퍼 메서드 (최적화된 버전)
@@ -408,9 +419,13 @@ class SudokuViewModel : ViewModel() {
             elapsedTimeSeconds = 0,
             isTimerRunning = false
         )
+
+        // 새 게임 시작 시 저장된 게임 삭제
+        clearSavedGameAsync()
     }
 
     fun newGameWithDifficulty(difficulty: DifficultyLevel) {
+        currentDifficulty = difficulty
         game.generateNewGameWithDifficulty(difficulty)
         val newBoard = game.getBoard()
         val newInitialCells =
@@ -436,12 +451,17 @@ class SudokuViewModel : ViewModel() {
             showRestartOptionsDialog = false,
             shouldNavigateToMain = false
         )
+
+        // 새 게임 시작 시 저장된 게임 삭제
+        clearSavedGameAsync()
     }
 
     fun solveGame() {
         game.solveGame()
         stopTimer() // 게임 완료 시 타이머 정지
         updateState(isGameComplete = true, showGameCompleteDialog = true)
+        // 게임 완료 시 저장된 게임 삭제
+        clearSavedGameAsync()
     }
 
     fun clearBoard() {
@@ -965,6 +985,85 @@ class SudokuViewModel : ViewModel() {
             highlightedRows = emptySet(),
             highlightedCols = emptySet()
         )
+    }
+
+    // ===== 게임 상태 저장/복원 관련 메서드들 =====
+
+    /**
+     * 저장된 게임 상태를 복원한다
+     * @return 복원 성공 여부
+     */
+    suspend fun loadSavedGame(): Boolean {
+        return try {
+            val savedState = gameStateRepository?.loadGameState() ?: return false
+
+            // 게임 보드 설정
+            val restoredBoard = savedState.board.map { it.toIntArray() }.toTypedArray()
+            game.setBoard(restoredBoard)
+
+            // 초기 보드와 솔루션 설정 (필요한 경우)
+            initialBoard = savedState.initialBoard.map { it.toIntArray() }.toTypedArray()
+
+            // 난이도 설정
+            currentDifficulty = savedState.difficulty
+
+            // 상태 복원
+            _state.value = savedState.toSudokuState()
+
+            // 게임이 진행 중이면 타이머 시작 (게임 완료나 게임 오버가 아닌 경우)
+            if (!savedState.isGameComplete && !savedState.isGameOver && !isTestMode) {
+                startTimer()
+            } else {
+                stopTimer()
+            }
+
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * 현재 게임 상태를 저장한다
+     */
+    private fun saveGameStateAsync() {
+        gameStateRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    val currentState = _state.value
+                    val serializableState = currentState.toSerializable(
+                        difficulty = currentDifficulty,
+                        initialBoard = initialBoard ?: game.getInitialBoard(),
+                        solution = game.getSolution()
+                    )
+                    repository.saveGameState(serializableState)
+                } catch (e: Exception) {
+                    // 저장 실패 시 로그 (실제 앱에서는 로깅 시스템 사용)
+                }
+            }
+        }
+    }
+
+    /**
+     * 저장된 게임을 삭제한다
+     */
+    private fun clearSavedGameAsync() {
+        gameStateRepository?.let { repository ->
+            viewModelScope.launch {
+                try {
+                    repository.clearSavedGame()
+                } catch (e: Exception) {
+                    // 삭제 실패 시 로그
+                }
+            }
+        }
+    }
+
+    /**
+     * 저장된 게임이 있는지 확인한다
+     */
+    fun hasSavedGame(): Boolean {
+        return gameStateRepository?.hasSavedGame() ?: false
     }
 
     // ViewModel 정리 시 메모리 해제

@@ -21,6 +21,8 @@ class SudokuGame {
 
     fun getInitialBoard(): Array<IntArray> = Array(BOARD_SIZE) { row -> initialBoard[row].clone() }
 
+    fun getSolution(): Array<IntArray> = Array(BOARD_SIZE) { row -> solution[row].clone() }
+
     fun getCell(row: Int, col: Int): Int {
         require(row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
             "Invalid cell coordinates: ($row, $col). Must be between 0 and ${BOARD_SIZE - 1}"

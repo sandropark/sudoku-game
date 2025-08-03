@@ -124,24 +124,39 @@ class RestartOptionUITest {
 
     // 헬퍼 메서드들
     private fun createThreeMistakes() {
-        val state = viewModel.state.value
         var mistakesMade = 0
+        val usedCells = mutableSetOf<Pair<Int, Int>>()
 
         for (row in 0..8) {
             for (col in 0..8) {
                 if (mistakesMade >= 3) break
-                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                val currentState = viewModel.state.value
+                if (!viewModel.isInitialCell(row, col) &&
+                    currentState.board[row][col] == 0 &&
+                    !usedCells.contains(Pair(row, col))
+                ) {
+
                     val cellTag = "cell_${row}_${col}_editable"
                     composeTestRule.onNodeWithTag(cellTag).performClick()
                     composeTestRule.waitForIdle()
 
                     val wrongValue = (1..9).firstOrNull { value ->
-                        state.board[row].contains(value)
+                        currentState.board[row].contains(value)
                     }
                     if (wrongValue != null) {
                         composeTestRule.onNodeWithTag("number_btn_${wrongValue}").performClick()
                         composeTestRule.waitForIdle()
+                        usedCells.add(Pair(row, col))
                         mistakesMade++
+
+                        // 3번째 실수 후 게임 오버 팝업이 나타나는지 확인
+                        if (mistakesMade >= 3) {
+                            // 게임 오버 팝업이 나타날 때까지 대기
+                            composeTestRule.waitUntil(timeoutMillis = 3000) {
+                                viewModel.state.value.showGameOverDialog
+                            }
+                            break
+                        }
                     }
                 }
             }
