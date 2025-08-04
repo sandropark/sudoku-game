@@ -6,7 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import org.junit.Assert.assertTrue
+import io.kotest.matchers.shouldBe
 import org.junit.Rule
 import org.junit.Test
 
@@ -70,7 +70,7 @@ class SudokuCellTest {
             )
         }
         composeTestRule.onNodeWithTag("cell_2_2_editable").performClick()
-        assertTrue(clicked)
+        clicked shouldBe true
     }
 
     @Test
