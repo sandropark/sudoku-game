@@ -25,14 +25,44 @@ import com.sandro.new_sudoku.ui.theme.SudokuTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private var sudokuViewModel: SudokuViewModel? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             SudokuTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SudokuApp(modifier = Modifier.padding(innerPadding))
+                    SudokuApp(
+                        modifier = Modifier.padding(innerPadding),
+                        onViewModelCreated = { viewModel ->
+                            sudokuViewModel = viewModel
+                        }
+                    )
                 }
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // 앱이 백그라운드로 갈 때 타이머 일시정지
+        sudokuViewModel?.pauseTimer()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 앱이 보이지 않게 될 때 게임 상태 저장
+        sudokuViewModel?.saveCurrentGameState()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 앱이 다시 활성화될 때 타이머 재시작
+        sudokuViewModel?.let { viewModel ->
+            val currentState = viewModel.state.value
+            if (!currentState.isGameComplete && !currentState.isGameOver && !currentState.isTimerRunning) {
+                viewModel.resumeTimer()
             }
         }
     }
@@ -40,7 +70,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SudokuApp(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewModelCreated: (SudokuViewModel) -> Unit = {}
 ) {
     val context = LocalContext.current
     val mainScreenViewModel: MainScreenViewModel = viewModel {
@@ -48,6 +79,11 @@ fun SudokuApp(
     }
     val sudokuViewModel: SudokuViewModel = viewModel {
         SudokuViewModel(GameStateRepository(context))
+    }
+
+    // ViewModel을 Activity에 전달
+    LaunchedEffect(sudokuViewModel) {
+        onViewModelCreated(sudokuViewModel)
     }
     var currentScreen by remember { mutableStateOf("main") }
     val mainScreenState by mainScreenViewModel.state.collectAsState()

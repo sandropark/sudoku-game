@@ -915,7 +915,7 @@ class SudokuViewModel(
         if (!_state.value.isTimerRunning) {
             _state.value = _state.value.copy(isTimerRunning = true)
 
-            // 테스트 모드에서는 실제 타이머를 시작하지 않음
+            // 테스트 모드에서는 상태만 변경하고 실제 타이머는 시작하지 않음
             if (isTestMode) {
                 return
             }
@@ -932,8 +932,8 @@ class SudokuViewModel(
                     }
                 }
             } catch (e: Exception) {
-                // 테스트 환경에서는 타이머가 실행되지 않을 수 있음
-                // 상태는 isTimerRunning = true로 유지 (테스트에서 확인용)
+                // 코루틴이 시작되지 않더라도 상태는 isTimerRunning = true로 유지
+                // 이는 테스트나 UI에서 타이머 상태를 확인할 수 있게 함
             }
         }
     }
@@ -1011,8 +1011,28 @@ class SudokuViewModel(
             _state.value = savedState.toSudokuState()
 
             // 게임이 진행 중이면 타이머 시작 (게임 완료나 게임 오버가 아닌 경우)
-            if (!savedState.isGameComplete && !savedState.isGameOver && !isTestMode) {
-                startTimer()
+            // 이어하기를 선택했다는 것은 게임을 계속 진행하겠다는 의미이므로 항상 타이머 시작
+            if (!savedState.isGameComplete && !savedState.isGameOver) {
+                // isTestMode와 관계없이 상태는 항상 타이머 실행으로 설정
+                _state.value = _state.value.copy(isTimerRunning = true)
+
+                // 실제 타이머 시작 (테스트 모드가 아닌 경우에만)
+                if (!isTestMode) {
+                    try {
+                        timerJob = viewModelScope.launch {
+                            while (_state.value.isTimerRunning) {
+                                delay(1000)
+                                if (_state.value.isTimerRunning) {
+                                    _state.value = _state.value.copy(
+                                        elapsedTimeSeconds = _state.value.elapsedTimeSeconds + 1
+                                    )
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // 예외가 발생해도 상태는 유지
+                    }
+                }
             } else {
                 stopTimer()
             }
@@ -1066,9 +1086,30 @@ class SudokuViewModel(
         return gameStateRepository?.hasSavedGame() ?: false
     }
 
+    /**
+     * 현재 게임 상태를 즉시 저장한다 (앱 생명주기에서 사용)
+     */
+    fun saveCurrentGameState() {
+        val currentState = _state.value
+        if (!currentState.isGameComplete && !currentState.isGameOver) {
+            saveGameStateAsync()
+        }
+    }
+
     // ViewModel 정리 시 메모리 해제
     override fun onCleared() {
         super.onCleared()
+
+        // 앱 종료 시 게임이 진행 중이면 상태 저장
+        val currentState = _state.value
+        if (!currentState.isGameComplete && !currentState.isGameOver) {
+            // 타이머가 실행 중이었다면 현재 상태를 저장
+            if (currentState.isTimerRunning) {
+                pauseTimer() // 타이머 일시정지
+            }
+            saveGameStateAsync() // 현재 상태 저장
+        }
+
         undoStack.clear()
         initialBoard = null
         initialCells = null
