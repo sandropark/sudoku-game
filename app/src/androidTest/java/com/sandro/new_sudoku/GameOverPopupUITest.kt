@@ -29,30 +29,33 @@ class GameOverPopupUITest {
 
     @Test
     fun testGameOverDialogDisplaysCorrectly() {
-        // 여러 빈 셀에서 3번의 서로 다른 실수 만들기 (토글 방지)
-        val state = viewModel.state.value
+        // 여러 빈 셀에서 3번의 서로 다른 실수 만들기
         var mistakesMade = 0
+        val usedCells = mutableSetOf<Pair<Int, Int>>()
 
         for (row in 0..8) {
             for (col in 0..8) {
                 if (mistakesMade >= 3) break
-                if (!viewModel.isInitialCell(row, col) && state.board[row][col] == 0) {
+                if (!viewModel.isInitialCell(row, col) &&
+                    viewModel.state.value.board[row][col] == 0 &&
+                    !usedCells.contains(Pair(row, col))
+                ) {
+
                     val cellTag = "cell_${row}_${col}_editable"
 
                     // 셀 선택
                     composeTestRule.onNodeWithTag(cellTag).performClick()
                     composeTestRule.waitForIdle()
 
-                    // 해당 행에서 잘못된 값 찾기
-                    val wrongValue = (1..9).firstOrNull { value ->
-                        state.board[row].contains(value)
-                    }
+                    // 해당 위치에 잘못된 값 찾기 (스도쿠 규칙 위반)
+                    val wrongValue = findInvalidValueForCell(row, col, viewModel.state.value.board)
 
                     if (wrongValue != null) {
                         // 잘못된 값 입력
                         composeTestRule.onNodeWithTag("number_btn_${wrongValue}").performClick()
                         composeTestRule.waitForIdle()
                         mistakesMade++
+                        usedCells.add(Pair(row, col))
                     }
                 }
             }
@@ -96,25 +99,55 @@ class GameOverPopupUITest {
         }
 
         if (emptyRow != -1) {
-            // 빈 셀은 초기 셀이 아니므로 _editable 접미사가 붙음
             val cellTag = "cell_${emptyRow}_${emptyCol}_editable"
 
             // 셀 선택
             composeTestRule.onNodeWithTag(cellTag).performClick()
 
-            // 같은 행에 있는 숫자 찾기
-            val existingValue = (1..9).firstOrNull { value ->
-                state.board[emptyRow].contains(value)
-            }
+            // 잘못된 값 찾기
+            val wrongValue = findInvalidValueForCell(emptyRow, emptyCol, state.board)
 
-            if (existingValue != null) {
+            if (wrongValue != null) {
                 // 잘못된 값 입력
-                composeTestRule.onNodeWithTag("number_btn_${existingValue}").performClick()
+                composeTestRule.onNodeWithTag("number_btn_${wrongValue}").performClick()
                 composeTestRule.waitForIdle()
 
                 // 실수 카운트가 증가했는지 확인
                 composeTestRule.onNodeWithText("실수: 1").assertIsDisplayed()
             }
         }
+    }
+
+    /**
+     * 특정 셀에 대해 스도쿠 규칙을 위반하는 값을 찾는다
+     */
+    private fun findInvalidValueForCell(row: Int, col: Int, board: Array<IntArray>): Int? {
+        for (value in 1..9) {
+            // 행에서 충돌하는 값 찾기
+            for (c in 0..8) {
+                if (c != col && board[row][c] == value) {
+                    return value
+                }
+            }
+
+            // 열에서 충돌하는 값 찾기
+            for (r in 0..8) {
+                if (r != row && board[r][col] == value) {
+                    return value
+                }
+            }
+
+            // 3x3 박스에서 충돌하는 값 찾기
+            val boxRow = (row / 3) * 3
+            val boxCol = (col / 3) * 3
+            for (r in boxRow until boxRow + 3) {
+                for (c in boxCol until boxCol + 3) {
+                    if ((r != row || c != col) && board[r][c] == value) {
+                        return value
+                    }
+                }
+            }
+        }
+        return null
     }
 } 

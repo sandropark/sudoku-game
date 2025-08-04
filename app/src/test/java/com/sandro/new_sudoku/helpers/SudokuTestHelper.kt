@@ -94,6 +94,43 @@ object SudokuTestHelper {
     }
 
     /**
+     * 지정된 위치에 유효하지 않은 숫자를 찾는다 (스도쿠 규칙 위반)
+     * @param board 현재 게임 보드
+     * @param row 행 인덱스
+     * @param col 열 인덱스
+     * @return 유효하지 않은 숫자 (1-9) 또는 null
+     */
+    fun findInvalidValue(board: Array<IntArray>, row: Int, col: Int): Int? {
+        for (value in 1..9) {
+            // 행에서 충돌하는 값 찾기
+            for (c in 0..8) {
+                if (c != col && board[row][c] == value) {
+                    return value
+                }
+            }
+
+            // 열에서 충돌하는 값 찾기
+            for (r in 0..8) {
+                if (r != row && board[r][col] == value) {
+                    return value
+                }
+            }
+
+            // 3x3 박스에서 충돌하는 값 찾기
+            val boxRow = (row / 3) * 3
+            val boxCol = (col / 3) * 3
+            for (r in boxRow until boxRow + 3) {
+                for (c in boxCol until boxCol + 3) {
+                    if ((r != row || c != col) && board[r][c] == value) {
+                        return value
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    /**
      * 특정 셀을 유효한 상태로 복구한다
      * @param viewModel ViewModel 인스턴스
      * @param row 행 인덱스
