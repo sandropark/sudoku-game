@@ -131,4 +131,80 @@ class HintTest {
         assert(initialCellTested) { "초기 셀이 있어야 함" }
         assert(emptyCellTested) { "빈 셀이 있어야 함" }
     }
+
+    @Test
+    fun `힌트가 스도쿠 규칙에 맞는 올바른 정답인지 테스트`() {
+        // Given: 게임이 초기화됨
+        val solution = game.getSolution()
+        
+        // When & Then: 모든 셀의 힌트가 완전한 해답과 일치하는지 확인
+        for (row in 0 until 9) {
+            for (col in 0 until 9) {
+                val hint = game.getHint(row, col)
+                assertEquals("힌트가 해답과 일치해야 함 ($row, $col)", solution[row][col], hint)
+            }
+        }
+    }
+
+    @Test
+    fun `힌트로 제공되는 해답이 유효한 스도쿠 해답인지 테스트`() {
+        // Given: 게임이 초기화됨
+        val solution = game.getSolution()
+        
+        // When & Then: 해답이 스도쿠 규칙을 만족하는지 확인
+        
+        // 1. 각 행에 1-9가 모두 포함되어야 함
+        for (row in 0 until 9) {
+            val rowNumbers = solution[row].toSet()
+            assertEquals("행 $row 에 1-9가 모두 있어야 함", setOf(1,2,3,4,5,6,7,8,9), rowNumbers)
+        }
+        
+        // 2. 각 열에 1-9가 모두 포함되어야 함
+        for (col in 0 until 9) {
+            val colNumbers = mutableSetOf<Int>()
+            for (row in 0 until 9) {
+                colNumbers.add(solution[row][col])
+            }
+            assertEquals("열 $col 에 1-9가 모두 있어야 함", setOf(1,2,3,4,5,6,7,8,9), colNumbers)
+        }
+        
+        // 3. 각 3x3 박스에 1-9가 모두 포함되어야 함
+        for (boxRow in 0 until 3) {
+            for (boxCol in 0 until 3) {
+                val boxNumbers = mutableSetOf<Int>()
+                for (row in boxRow * 3 until boxRow * 3 + 3) {
+                    for (col in boxCol * 3 until boxCol * 3 + 3) {
+                        boxNumbers.add(solution[row][col])
+                    }
+                }
+                assertEquals("3x3 박스 ($boxRow, $boxCol) 에 1-9가 모두 있어야 함", 
+                           setOf(1,2,3,4,5,6,7,8,9), boxNumbers)
+            }
+        }
+    }
+
+    @Test
+    fun `빈 셀에 힌트를 적용했을 때 스도쿠 규칙을 위반하지 않는지 테스트`() {
+        // Given: 게임이 초기화됨
+        
+        // When & Then: 각 빈 셀에 힌트를 적용했을 때 규칙을 위반하지 않는지 확인
+        for (row in 0 until 9) {
+            for (col in 0 until 9) {
+                if (game.getCell(row, col) == 0) { // 빈 셀인 경우
+                    val hint = game.getHint(row, col)
+                    
+                    // 임시로 힌트 값을 설정
+                    game.setCell(row, col, hint)
+                    
+                    // 해당 셀이 유효한지 확인
+                    assert(game.isCellValid(row, col)) { 
+                        "힌트 $hint 을 ($row, $col) 에 적용했을 때 스도쿠 규칙을 위반함" 
+                    }
+                    
+                    // 원복
+                    game.setCell(row, col, 0)
+                }
+            }
+        }
+    }
 }
