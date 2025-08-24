@@ -1,6 +1,7 @@
 package com.sandro.new_sudoku
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -83,7 +85,7 @@ fun SudokuScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         StatusBar(
             mistakeCount = state.mistakeCount,
@@ -92,7 +94,7 @@ fun SudokuScreen(
             formatTime = viewModel::formatTime
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         key(
             state.notes.hashCode(),
@@ -192,21 +194,21 @@ fun TopBar(onBackClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(4.dp)
             .testTag("top_bar"),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 뒤로가기 - 크기와 가독성 향상
         Box(
             Modifier
-                .size(48.dp) // 32dp → 48dp로 증가 (터치 영역 확대)
+                .size(40.dp) // 48dp → 40dp로 감소 (터치 영역 유지하면서 크기 축소)
                 .clickable { onBackClick() }
                 .testTag("back_button")
         ) {
             // 아이콘 크기와 가독성 향상
             Text(
                 "←",
-                fontSize = 28.sp, // 20sp → 28sp로 증가 
+                fontSize = 24.sp, // 28sp → 24sp로 감소 
                 fontWeight = FontWeight.Bold, // 굵은 글씨체로 가독성 향상
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -218,12 +220,8 @@ fun TopBar(onBackClick: () -> Unit = {}) {
             modifier = Modifier.testTag("top_bar_title")
         )
         Spacer(Modifier.weight(1f))
-        // 설정 - 대칭성을 위해 크기 맞춤
-        Box(Modifier
-            .size(48.dp)
-            .testTag("settings_button")) {
-            Text("⚙️", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
-        }
+        // 설정 아이콘 제거 - 우측 대칭을 위한 투명 박스
+        Box(Modifier.size(40.dp))
     }
 }
 
@@ -241,7 +239,7 @@ fun StatusBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 2.dp), // horizontal 16dp → 12dp, vertical 4dp → 2dp
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(difficultyToKorean(difficulty))
@@ -311,17 +309,22 @@ fun ActionButton(
                     }
             } else Modifier
         ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 실제 아이콘은 프로젝트에 맞게 교체
+            Box {
+                // 메인 아이콘
                 Text("⬜", fontSize = 20.sp)
+                
+                // 광고 아이콘 - 버튼의 1사분면(우상단)에 겹치게 배치
                 icon?.let {
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(it, fontSize = 12.sp)
+                    Text(
+                        text = it,
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-3).dp, y = (-3).dp)
+                    )
                 }
             }
+            Spacer(modifier = Modifier.height(2.dp))
             Text(text, style = MaterialTheme.typography.bodySmall)
         }
         if (badgeCount > 0) {
