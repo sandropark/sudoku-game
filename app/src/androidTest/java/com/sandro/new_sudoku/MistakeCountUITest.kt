@@ -32,12 +32,12 @@ class MistakeCountUITest {
     }
 
     @Test
-    fun testStatusBarDisplaysMistakeCount() {
-        // StatusBar가 표시되는지 확인
-        composeTestRule.onNodeWithText("전문가").assertIsDisplayed()
-        composeTestRule.onNodeWithText("실수: 0").assertIsDisplayed()
-        composeTestRule.onNodeWithText("00:00").assertIsDisplayed() // 타이머 초기값 확인
-    }
+fun testStatusBarDisplaysMistakeCount() {
+    // StatusBar가 표시되는지 확인
+    composeTestRule.onNodeWithText("쉬움").assertIsDisplayed()
+    composeTestRule.onNodeWithText("실수: 0").assertIsDisplayed()
+    composeTestRule.onNodeWithText("00:00").assertIsDisplayed() // 타이머 초기값 확인
+}
 
     @Test
     fun testGameScreenElementsAreVisible() {
@@ -57,8 +57,8 @@ class MistakeCountUITest {
     }
 
     @Test
-    fun testDifficultyLevelDisplayed() {
-        // 난이도가 표시되는지 확인 (현재는 "전문가"로 하드코딩)
-        composeTestRule.onNodeWithText("전문가").assertIsDisplayed()
-    }
+fun testDifficultyLevelDisplayed() {
+    // 난이도가 표시되는지 확인 (기본값은 "쉬움")
+    composeTestRule.onNodeWithText("쉬움").assertIsDisplayed()
+}
 } 

@@ -39,9 +39,6 @@ functionality, and comprehensive testing.
 # Run UI tests (requires emulator/device)
 ./gradlew connectedDebugAndroidTest
 
-# Run UI tests with script (checks emulator status)
-./run-ui-tests.sh
-
 # Generate test coverage reports
 ./gradlew jacocoTestReport
 ./gradlew jacocoUiTestReport

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sandro.new_sudoku.ui.AdBanner
+import com.sandro.new_sudoku.ui.DifficultyLevel
 
 @Composable
 fun SudokuScreen(
@@ -68,6 +69,7 @@ fun SudokuScreen(
         StatusBar(
             mistakeCount = state.mistakeCount,
             elapsedTimeSeconds = state.elapsedTimeSeconds,
+            difficulty = state.difficulty,
             formatTime = viewModel::formatTime
         )
 
@@ -197,6 +199,7 @@ fun TopBar(onBackClick: () -> Unit = {}) {
 fun StatusBar(
     mistakeCount: Int = 0,
     elapsedTimeSeconds: Int = 0,
+    difficulty: DifficultyLevel = DifficultyLevel.EASY,
     formatTime: (Int) -> String = { seconds ->
         val minutes = seconds / 60
         val remainingSeconds = seconds % 60
@@ -209,9 +212,20 @@ fun StatusBar(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("전문가")
+        Text(difficultyToKorean(difficulty))
         Text("실수: $mistakeCount")
         Text(formatTime(elapsedTimeSeconds)) // 실제 타이머 표시
+    }
+}
+
+/**
+ * 난이도를 한국어로 변환하는 함수
+ */
+fun difficultyToKorean(difficulty: DifficultyLevel): String {
+    return when (difficulty) {
+        DifficultyLevel.EASY -> "쉬움"
+        DifficultyLevel.MEDIUM -> "보통"
+        DifficultyLevel.HARD -> "어려움"
     }
 }
 

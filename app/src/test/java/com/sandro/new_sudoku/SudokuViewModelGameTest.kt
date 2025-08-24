@@ -1,6 +1,7 @@
 package com.sandro.new_sudoku
 
 import com.sandro.new_sudoku.helpers.SudokuTestHelper
+import com.sandro.new_sudoku.ui.DifficultyLevel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -194,6 +195,69 @@ class SudokuViewModelGameTest {
 
         val updatedState = viewModel.state.first()
         assertNotEquals("상태 변화가 있어야 함", initialState, updatedState)
+    }
+
+    @Test
+    fun `선택한_난이도가_상태에_올바르게_반영되는지_테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+        
+        // EASY 난이도로 새 게임 시작
+        viewModel.newGameWithDifficulty(DifficultyLevel.EASY)
+        val easyState = viewModel.state.first()
+        assertEquals("쉬움 난이도가 상태에 반영되어야 함", DifficultyLevel.EASY, easyState.difficulty)
+        
+        // MEDIUM 난이도로 새 게임 시작
+        viewModel.newGameWithDifficulty(DifficultyLevel.MEDIUM)
+        val mediumState = viewModel.state.first()
+        assertEquals("보통 난이도가 상태에 반영되어야 함", DifficultyLevel.MEDIUM, mediumState.difficulty)
+        
+        // HARD 난이도로 새 게임 시작
+        viewModel.newGameWithDifficulty(DifficultyLevel.HARD)
+        val hardState = viewModel.state.first()
+        assertEquals("어려움 난이도가 상태에 반영되어야 함", DifficultyLevel.HARD, hardState.difficulty)
+    }
+
+    @Test
+    fun `새게임_시작시_전달한_난이도가_저장되는지_테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+        
+        // 초기 상태는 EASY로 설정되어야 함
+        val initialState = viewModel.state.first()
+        assertEquals("초기 난이도는 EASY여야 함", DifficultyLevel.EASY, initialState.difficulty)
+        
+        // HARD 난이도로 게임 시작
+        viewModel.newGameWithDifficulty(DifficultyLevel.HARD)
+        val stateAfterHard = viewModel.state.first()
+        assertEquals("HARD 난이도로 시작한 게임의 상태", DifficultyLevel.HARD, stateAfterHard.difficulty)
+        
+        // 게임 진행 중에도 난이도가 유지되는지 확인
+        val emptyCell = SudokuTestHelper.findEmptyCell(stateAfterHard.board, viewModel)
+        if (emptyCell != null) {
+            val (row, col) = emptyCell
+            viewModel.selectCell(row, col)
+            viewModel.setCellValue(5)
+            val stateAfterMove = viewModel.state.first()
+            assertEquals("게임 진행 중에도 난이도가 유지되어야 함", DifficultyLevel.HARD, stateAfterMove.difficulty)
+        }
+    }
+
+    @Test
+    fun `난이도별로_상태가_올바르게_설정되는지_테스트`() = runTest {
+        val viewModel = SudokuTestHelper.createTestViewModel()
+        
+        // 각 난이도별로 테스트
+        val difficulties = listOf(DifficultyLevel.EASY, DifficultyLevel.MEDIUM, DifficultyLevel.HARD)
+        
+        for (difficulty in difficulties) {
+            viewModel.newGameWithDifficulty(difficulty)
+            val state = viewModel.state.first()
+            
+            assertEquals("${difficulty.displayName} 난이도가 올바르게 설정되어야 함", difficulty, state.difficulty)
+            assertFalse("새 게임은 완료되지 않아야 함", state.isGameComplete)
+            assertEquals("선택된 셀이 초기화되어야 함", -1, state.selectedRow)
+            assertEquals("선택된 셀이 초기화되어야 함", -1, state.selectedCol)
+            assertEquals("실수 횟수가 0이어야 함", 0, state.mistakeCount)
+        }
     }
 
     @Test

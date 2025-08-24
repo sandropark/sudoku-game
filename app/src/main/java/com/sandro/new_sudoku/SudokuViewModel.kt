@@ -36,7 +36,8 @@ data class SudokuState(
     val highlightedCells: Set<Pair<Int, Int>> = emptySet(), // 하이라이트된 셀들
     val highlightedRows: Set<Int> = emptySet(), // 하이라이트된 행들
     val highlightedCols: Set<Int> = emptySet(), // 하이라이트된 열들
-    val completedNumbers: Set<Int> = emptySet() // 보드에 9개 모두 입력된 완성된 숫자들
+    val completedNumbers: Set<Int> = emptySet(), // 보드에 9개 모두 입력된 완성된 숫자들
+    val difficulty: DifficultyLevel = DifficultyLevel.EASY // 현재 게임의 난이도
 )
 
 class SudokuViewModel(
@@ -467,7 +468,8 @@ class SudokuViewModel(
             isGameOver = false,
             showGameOverDialog = false,
             showRestartOptionsDialog = false,
-            shouldNavigateToMain = false
+            shouldNavigateToMain = false,
+            difficulty = currentDifficulty
         )
 
         // 새 게임 시작 시 저장된 게임 삭제
