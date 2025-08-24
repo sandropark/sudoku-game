@@ -476,6 +476,18 @@ class SudokuViewModel(
 
     fun solveGame() {
         game.solveGame()
+        val solution = game.getBoard()
+        
+        _state.value = _state.value.copy(
+            board = solution,
+            isGameComplete = true,
+            selectedRow = -1,
+            selectedCol = -1,
+            showError = false,
+            invalidCells = emptySet(),
+            notes = Array(9) { Array(9) { emptySet() } } // 노트 초기화
+        )
+        
         completeGame()
     }
 
@@ -800,27 +812,13 @@ class SudokuViewModel(
         )
     }
 
-    /**
-     * 전면 광고를 표시한 후 게임 완료 다이얼로그를 표시합니다
-     */
-    private fun showInterstitialAdAndCompleteDialog() {
-        val activity = context as? Activity
-
-        if (activity != null && interstitialAdManager != null) {
-            interstitialAdManager.showAd(activity) {
-                _state.value = _state.value.copy(showGameCompleteDialog = true)
-            }
-        } else {
-            _state.value = _state.value.copy(showGameCompleteDialog = true)
-        }
-    }
 
     /**
      * 게임 완료 처리 (사용자가 직접 완료하든 정답 버튼을 누르든 동일하게 처리)
      */
     private fun completeGame() {
         stopTimer() // 타이머 정지
-        showInterstitialAdAndCompleteDialog() // 전면 광고 + 다이얼로그
+        _state.value = _state.value.copy(showGameCompleteDialog = true)
         clearSavedGameAsync() // 저장된 게임 삭제
     }
 
