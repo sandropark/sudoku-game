@@ -3,7 +3,7 @@
 
     <style name="Theme.New_sudoku" parent="android:Theme.Material.Light.NoActionBar" />
     
-    <!-- 스플래시 스크린 테마 -->
+    <!-- 스플래시 스크린 테마 - Android 12+ -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <!-- 스플래시 스크린 배경 색상 -->
         <item name="windowSplashScreenBackground">@color/splash_background</item>

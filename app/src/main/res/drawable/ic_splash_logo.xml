@@ -1,0 +1,43 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+    
+    <!-- 스도쿠 그리드 배경 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,32 L160,32 L160,160 L32,160 Z" />
+    
+    <!-- 스도쿠 그리드 선 -->
+    <!-- 세로선 -->
+    <path
+        android:strokeColor="#333333"
+        android:strokeWidth="1"
+        android:pathData="M56,32 L56,160 M80,32 L80,160 M112,32 L112,160 M136,32 L136,160" />
+    
+    <!-- 가로선 -->
+    <path
+        android:strokeColor="#333333"
+        android:strokeWidth="1"
+        android:pathData="M32,56 L160,56 M32,80 L160,80 M32,112 L160,112 M32,136 L160,136" />
+        
+    <!-- 굵은 그리드 선 (3x3 블록 구분) -->
+    <!-- 세로선 -->
+    <path
+        android:strokeColor="#333333"
+        android:strokeWidth="3"
+        android:pathData="M96,32 L96,160 M32,32 L32,160 M160,32 L160,160" />
+    
+    <!-- 가로선 -->
+    <path
+        android:strokeColor="#333333"
+        android:strokeWidth="3"
+        android:pathData="M32,96 L160,96 M32,32 L160,32 M32,160 L160,160" />
+    
+    <!-- 중앙에 파란색 원 -->
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M96,72 A24,24 0 1,1 96,120 A24,24 0 1,1 96,72 Z" />
+
+</vector>

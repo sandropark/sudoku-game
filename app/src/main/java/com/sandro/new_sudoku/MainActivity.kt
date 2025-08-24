@@ -5,6 +5,7 @@ import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -32,8 +33,15 @@ class MainActivity : ComponentActivity() {
     private var sudokuViewModel: SudokuViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // SplashScreen API 초기화 (super.onCreate 이전에 호출)
+        val splashScreen = installSplashScreen()
+        
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // 스플래시 화면이 표시되는 조건을 설정할 수 있음
+        // 예: 앱 초기화가 완료될 때까지 스플래시 유지
+        // splashScreen.setKeepOnScreenCondition { false }
 
         // WebView 디버깅 활성화 (에뮬레이터에서 도움됨)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {

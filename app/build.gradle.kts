@@ -261,6 +261,7 @@ tasks.register("testAll") {
 
 dependencies {
     implementation("com.google.android.gms:play-services-ads:24.5.0") // AdMob
+    implementation("androidx.core:core-splashscreen:1.0.1") // SplashScreen API
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
