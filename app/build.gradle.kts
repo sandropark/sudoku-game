@@ -1,3 +1,5 @@
+import org.yaml.snakeyaml.Yaml
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,9 +7,27 @@ plugins {
     id("jacoco")
 }
 
+buildscript {
+    dependencies {
+        classpath("org.yaml:snakeyaml:1.33")
+    }
+}
+
 android {
     namespace = "com.sandro.new_sudoku"
     compileSdk = 35
+
+    val configFile = file("../config/sudoku.yml")
+    val config = if (configFile.exists()) {
+        try {
+            val yaml = Yaml()
+            yaml.load(configFile.readText()) as Map<String, Any>
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    } else {
+        emptyMap()
+    }
 
     defaultConfig {
         applicationId = "com.sandro.new_sudoku"
@@ -18,13 +38,103 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["coverage"] = "true"
+        val appId = config["app-id"]?.toString() ?: ""
+        manifestPlaceholders["adAppId"] = appId
     }
 
     buildTypes {
         debug {
-            // testCoverageEnabled = true  // AGP 버전에 따라 지원되지 않을 수 있음
+            // Google AdMob 테스트 광고 단위 ID들
+            buildConfigField(
+                "String",
+                "AD_APP_OPEN_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/9257395921\""
+            )          // 앱 오프닝 광고
+            buildConfigField(
+                "String",
+                "AD_BANNER_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/9214589741\""
+            )             // 적응형 배너
+            buildConfigField(
+                "String",
+                "AD_BANNER_FIXED_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/6300978111\""
+            )       // 고정 크기 배너
+            buildConfigField(
+                "String",
+                "AD_INTERSTITIAL_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/1033173712\""
+            )       // 전면 광고
+            buildConfigField(
+                "String",
+                "AD_REWARDED_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/5224354917\""
+            )           // 보상형 광고
+            buildConfigField(
+                "String",
+                "AD_REWARDED_INTERSTITIAL_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/5354046379\""
+            ) // 보상형 전면 광고
+            buildConfigField(
+                "String",
+                "AD_NATIVE_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/2247696110\""
+            )             // 네이티브
+            buildConfigField(
+                "String",
+                "AD_NATIVE_VIDEO_UNIT_ID",
+                "\"ca-app-pub-3940256099942544/1044960115\""
+            )       // 네이티브 동영상
         }
         release {
+            // YAML 파일에서 광고 ID 로드
+            val adIds = if (config.isNotEmpty()) {
+                config["ad-id"] as? Map<String, String> ?: emptyMap()
+            } else {
+                emptyMap()
+            }
+
+            buildConfigField(
+                "String",
+                "AD_APP_OPEN_UNIT_ID",
+                "\"${adIds["app-open"] ?: "ca-app-pub-3940256099942544/9257395921"}\""
+            )          // 앱 오프닝 광고
+            buildConfigField(
+                "String",
+                "AD_BANNER_UNIT_ID",
+                "\"${adIds["banner"] ?: "ca-app-pub-3940256099942544/9214589741"}\""
+            )             // 적응형 배너
+            buildConfigField(
+                "String",
+                "AD_BANNER_FIXED_UNIT_ID",
+                "\"${adIds["banner-fixed"] ?: "ca-app-pub-3940256099942544/6300978111"}\""
+            )       // 고정 크기 배너
+            buildConfigField(
+                "String",
+                "AD_INTERSTITIAL_UNIT_ID",
+                "\"${adIds["interstitial"] ?: "ca-app-pub-3940256099942544/1033173712"}\""
+            )       // 전면 광고
+            buildConfigField(
+                "String",
+                "AD_REWARDED_UNIT_ID",
+                "\"${adIds["rewarded"] ?: "ca-app-pub-3940256099942544/5224354917"}\""
+            )           // 보상형 광고
+            buildConfigField(
+                "String",
+                "AD_REWARDED_INTERSTITIAL_UNIT_ID",
+                "\"${adIds["rewarded-interstitial"] ?: "ca-app-pub-3940256099942544/5354046379"}\""
+            ) // 보상형 전면 광고
+            buildConfigField(
+                "String",
+                "AD_NATIVE_UNIT_ID",
+                "\"${adIds["native"] ?: "ca-app-pub-3940256099942544/2247696110"}\""
+            )             // 네이티브
+            buildConfigField(
+                "String",
+                "AD_NATIVE_VIDEO_UNIT_ID",
+                "\"${adIds["native-video"] ?: "ca-app-pub-3940256099942544/1044960115"}\""
+            )       // 네이티브 동영상
+
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -150,6 +260,7 @@ tasks.register("testAll") {
 }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-ads:24.5.0") // AdMob
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -166,7 +277,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
-    
+
     // Kotest
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")

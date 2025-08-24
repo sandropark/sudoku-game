@@ -1,8 +1,11 @@
 package com.sandro.new_sudoku
 
+import android.app.Activity
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sandro.new_sudoku.ui.DifficultyLevel
+import com.sandro.new_sudoku.ui.InterstitialAdManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,11 +40,19 @@ data class SudokuState(
 )
 
 class SudokuViewModel(
-    private val gameStateRepository: GameStateRepository? = null
+    private val gameStateRepository: GameStateRepository? = null,
+    private val context: Context? = null
 ) : ViewModel() {
     private val game = SudokuGame()
     var isTestMode = false // 테스트 모드 플래그
     private var currentDifficulty: DifficultyLevel = DifficultyLevel.EASY
+    
+    // 전면 광고 관리자 (Context가 있을 때만 초기화)
+    private val interstitialAdManager: InterstitialAdManager? = context?.let { ctx ->
+        InterstitialAdManager(ctx).apply {
+            loadAd() // 초기 광고 로딩
+        }
+    }
 
     private val _state: MutableStateFlow<SudokuState> = MutableStateFlow(
         SudokuState(
@@ -82,6 +93,8 @@ class SudokuViewModel(
             board = board,
             isInitialCells = isInitialCells
         )
+
+        interstitialAdManager?.loadAd()
     }
 
     fun selectCell(row: Int, col: Int) {
@@ -241,10 +254,15 @@ class SudokuViewModel(
             mistakeCount = newMistakeCount,
             showGameOverDialog = showGameOverDialog,
             isGameComplete = gameComplete,
-            showGameCompleteDialog = if (gameComplete && !currentState.isGameComplete) true else null,
+            showGameCompleteDialog = null, // 게임 완료 시 전면 광고 후 표시
             highlightedNumber = newValue,
             highlightedCells = highlightedCells
         )
+
+        // 8. 게임 완료 시 처리
+        if (gameComplete && !currentState.isGameComplete) {
+            completeGame()
+        }
 
         // 8. 게임 완료가 아닌 경우 상태 저장
         if (!gameComplete) {
@@ -458,10 +476,7 @@ class SudokuViewModel(
 
     fun solveGame() {
         game.solveGame()
-        stopTimer() // 게임 완료 시 타이머 정지
-        updateState(isGameComplete = true, showGameCompleteDialog = true)
-        // 게임 완료 시 저장된 게임 삭제
-        clearSavedGameAsync()
+        completeGame()
     }
 
     fun clearBoard() {
@@ -785,7 +800,77 @@ class SudokuViewModel(
         )
     }
 
+    /**
+     * 전면 광고를 표시한 후 게임 완료 다이얼로그를 표시합니다
+     */
+    private fun showInterstitialAdAndCompleteDialog() {
+        val activity = context as? Activity
+
+        if (activity != null && interstitialAdManager != null) {
+            interstitialAdManager.showAd(activity) {
+                _state.value = _state.value.copy(showGameCompleteDialog = true)
+            }
+        } else {
+            _state.value = _state.value.copy(showGameCompleteDialog = true)
+        }
+    }
+
+    /**
+     * 게임 완료 처리 (사용자가 직접 완료하든 정답 버튼을 누르든 동일하게 처리)
+     */
+    private fun completeGame() {
+        stopTimer() // 타이머 정지
+        showInterstitialAdAndCompleteDialog() // 전면 광고 + 다이얼로그
+        clearSavedGameAsync() // 저장된 게임 삭제
+    }
+
+    /**
+     * 힌트 버튼 클릭 시 전면 광고 표시
+     */
     fun useHint() {
+        val currentState = _state.value
+
+        // 셀이 선택되지 않은 경우 아무것도 하지 않음
+        if (currentState.selectedRow == -1 || currentState.selectedCol == -1) {
+            return
+        }
+
+        // 게임이 완료된 경우 아무것도 하지 않음
+        if (currentState.isGameComplete) {
+            return
+        }
+
+        val row = currentState.selectedRow
+        val col = currentState.selectedCol
+
+        // 현재 셀의 정답 가져오기
+        val correctValue = game.getHint(row, col)
+
+        // 현재 값과 정답이 같으면 아무것도 하지 않음
+        if (currentState.board[row][col] == correctValue) {
+            return
+        }
+
+        // 전면 광고 표시 (광고가 준비되지 않았으면 즉시 힌트 제공)
+        val activity = context as? Activity
+        if (activity != null && interstitialAdManager != null) {
+            interstitialAdManager?.showAd(
+                activity = activity,
+                onAdClosed = {
+                    // 광고 완료 후 또는 광고 없이 힌트 적용
+                    confirmHint()
+                }
+            )
+        } else {
+            // Activity가 없으면 그냥 힌트 제공
+            confirmHint()
+        }
+    }
+
+    /**
+     * 광고 시청 후 실제 힌트 제공
+     */
+    fun confirmHint() {
         val currentState = _state.value
 
         // 셀이 선택되지 않은 경우 아무것도 하지 않음
@@ -867,36 +952,27 @@ class SudokuViewModel(
         }
     }
 
+
     // 테스트용: 정답을 모두 입력하는 메서드
     fun fillCorrectAnswers() {
         val currentState = _state.value
+        if (currentState.isGameComplete) return
 
-        // 이미 게임이 완료된 경우 아무것도 하지 않음
-        if (currentState.isGameComplete) {
-            return
-        }
-
-        // 현재 게임을 해결하여 정답 보드 얻기
         game.solveGame()
         val solution = game.getBoard()
 
-        // 빈 셀들만 정답으로 채우기 (초기 셀은 건드리지 않음)
         val newBoard = Array(9) { row ->
             IntArray(9) { col ->
                 if (game.isInitialCell(row, col)) {
-                    // 초기 셀은 그대로 유지
                     currentState.board[row][col]
                 } else {
-                    // 빈 셀은 정답으로 채우기
                     solution[row][col]
                 }
             }
         }
 
-        // 타이머 정지
-        stopTimer()
+        game.setBoard(newBoard)
 
-        // 상태 업데이트: 게임 완료, 다이얼로그 표시
         _state.value = _state.value.copy(
             board = newBoard,
             isGameComplete = true,
@@ -904,9 +980,10 @@ class SudokuViewModel(
             selectedCol = -1,
             showError = false,
             invalidCells = emptySet(),
-            showGameCompleteDialog = true,
             notes = Array(9) { Array(9) { emptySet() } } // 노트 초기화
         )
+
+        completeGame()
     }
 
     // ===== 타이머 관련 메서드들 =====

@@ -158,3 +158,6 @@ replay_pid*
 
 # Keep gradle.properties
 !gradle.properties
+
+# Serena MCP configuration
+.serena/

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sandro.new_sudoku.ui.AdBanner
 
 @Composable
 fun SudokuScreen(
@@ -113,6 +114,19 @@ fun SudokuScreen(
             modifier = Modifier.testTag("number_pad")
         )
 
+        // 유동적인 간격 - 남은 공간을 광고와 하단 간격이 공유
+        Spacer(modifier = Modifier.weight(0.6f))
+
+        // AdMob 배너 광고 - 숫자 패드와 화면 하단 사이 유동적 위치
+        AdBanner(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("ad_banner")
+        )
+
+        // 하단 여백 - 광고가 화면 끝에 딱 붙지 않도록
+        Spacer(modifier = Modifier.weight(0.4f))
+
         if (state.showError) {
             Text(
                 text = state.errorMessage,
@@ -149,6 +163,7 @@ fun SudokuScreen(
             onMainMenu = { viewModel.goToMainFromComplete() }
         )
     }
+
 }
 
 @Composable
@@ -216,7 +231,7 @@ fun ActionBar(viewModel: SudokuViewModel) {
             testTag = "action_btn_노트",
             onClick = { viewModel.toggleNoteMode() }
         )
-        ActionButton("힌트", testTag = "action_btn_힌트", onClick = { viewModel.useHint() })
+        ActionButton("힌트", icon = "📺", testTag = "action_btn_힌트", onClick = { viewModel.useHint() })
 
         // 테스트용 버튼 - 디버그 빌드에서만 표시
         if (BuildConfig.DEBUG) {
@@ -232,6 +247,7 @@ fun ActionBar(viewModel: SudokuViewModel) {
 fun ActionButton(
     text: String,
     badgeCount: Int = 0,
+    icon: String? = null,
     testTag: String? = null,
     onClick: (() -> Unit)? = null
 ) {
@@ -249,8 +265,17 @@ fun ActionButton(
                     }
             } else Modifier
         ) {
-            // 실제 아이콘은 프로젝트에 맞게 교체
-            Text("⬜", fontSize = 20.sp)
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 실제 아이콘은 프로젝트에 맞게 교체
+                Text("⬜", fontSize = 20.sp)
+                icon?.let {
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(it, fontSize = 12.sp)
+                }
+            }
             Text(text, style = MaterialTheme.typography.bodySmall)
         }
         if (badgeCount > 0) {

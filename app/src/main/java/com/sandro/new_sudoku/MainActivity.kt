@@ -1,6 +1,7 @@
 package com.sandro.new_sudoku
 
 import android.os.Bundle
+import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,9 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.ads.MobileAds
 import com.sandro.new_sudoku.ui.MainScreen
 import com.sandro.new_sudoku.ui.MainScreenViewModel
 import com.sandro.new_sudoku.ui.theme.SudokuTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -30,6 +34,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // WebView 디버깅 활성화 (에뮬레이터에서 도움됨)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
+        // AdMob 초기화 (백그라운드 스레드에서)
+        CoroutineScope(Dispatchers.IO).launch {
+            MobileAds.initialize(this@MainActivity) {
+                println("✅ MobileAds 초기화 완료")
+            }
+        }
+
         setContent {
             SudokuTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -77,8 +94,10 @@ fun SudokuApp(
     val mainScreenViewModel: MainScreenViewModel = viewModel {
         MainScreenViewModel(GameStateRepository(context))
     }
+    // Activity를 LocalContext에서 안전하게 찾기
+    val activity = LocalContext.current as? ComponentActivity
     val sudokuViewModel: SudokuViewModel = viewModel {
-        SudokuViewModel(GameStateRepository(context))
+        SudokuViewModel(GameStateRepository(context), activity ?: context)
     }
 
     // ViewModel을 Activity에 전달
