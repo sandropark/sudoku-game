@@ -3,9 +3,9 @@ package com.sandro.new_sudoku
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.ads.MobileAds
 import com.sandro.new_sudoku.ui.MainScreen
@@ -34,11 +35,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // SplashScreen API 초기화 (super.onCreate 이전에 호출)
-        val splashScreen = installSplashScreen()
-        
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
         // 스플래시 화면이 표시되는 조건을 설정할 수 있음
         // 예: 앱 초기화가 완료될 때까지 스플래시 유지
         // splashScreen.setKeepOnScreenCondition { false }
@@ -102,8 +103,8 @@ fun SudokuApp(
     val mainScreenViewModel: MainScreenViewModel = viewModel {
         MainScreenViewModel(GameStateRepository(context))
     }
-    // Activity를 LocalContext에서 안전하게 찾기
-    val activity = LocalContext.current as? ComponentActivity
+    // Activity를 LocalActivity에서 안전하게 찾기
+    val activity = LocalActivity.current
     val sudokuViewModel: SudokuViewModel = viewModel {
         SudokuViewModel(GameStateRepository(context), activity ?: context)
     }

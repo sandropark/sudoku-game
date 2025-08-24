@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sandro.new_sudoku.ui.AdBanner
 import com.sandro.new_sudoku.ui.DifficultyLevel
+import kotlinx.coroutines.launch
 
 @Composable
 fun SudokuScreen(
@@ -53,6 +55,7 @@ fun SudokuScreen(
     onBackToMain: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     // 게임 시작 시 타이머 자동 시작
     LaunchedEffect(Unit) {
@@ -66,6 +69,22 @@ fun SudokuScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // 뒤로가기 버튼이 포함된 상단바
+        TopBar(
+            onBackClick = {
+                // 게임 상태를 저장한 후 메인 화면으로 돌아가기
+                // 비동기 저장을 처리하기 위해 coroutine 사용
+                coroutineScope.launch {
+                    viewModel.saveCurrentGameState()
+                    // 저장 완료를 위한 짧은 딜레이 (데이터 영속성 보장)
+                    kotlinx.coroutines.delay(100)
+                    onBackToMain()
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         StatusBar(
             mistakeCount = state.mistakeCount,
             elapsedTimeSeconds = state.elapsedTimeSeconds,
@@ -173,24 +192,37 @@ fun TopBar(onBackClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .testTag("top_bar"),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 뒤로가기
+        // 뒤로가기 - 크기와 가독성 향상
         Box(
             Modifier
-                .size(32.dp)
+                .size(48.dp) // 32dp → 48dp로 증가 (터치 영역 확대)
                 .clickable { onBackClick() }
+                .testTag("back_button")
         ) {
-            // 아이콘은 실제 프로젝트에 맞게 교체
-            Text("←", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
+            // 아이콘 크기와 가독성 향상
+            Text(
+                "←",
+                fontSize = 28.sp, // 20sp → 28sp로 증가 
+                fontWeight = FontWeight.Bold, // 굵은 글씨체로 가독성 향상
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
         Spacer(Modifier.weight(1f))
-        Text("스도쿠", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "스도쿠",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.testTag("top_bar_title")
+        )
         Spacer(Modifier.weight(1f))
-        // 설정
-        Box(Modifier.size(32.dp)) {
-            Text("⚙️", fontSize = 18.sp, modifier = Modifier.align(Alignment.Center))
+        // 설정 - 대칭성을 위해 크기 맞춤
+        Box(Modifier
+            .size(48.dp)
+            .testTag("settings_button")) {
+            Text("⚙️", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
         }
     }
 }
