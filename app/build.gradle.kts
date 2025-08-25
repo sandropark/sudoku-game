@@ -17,7 +17,7 @@ android {
     namespace = "com.sandro.new_sudoku"
     compileSdk = 35
 
-    val configFile = file("../config/sudoku.yml")
+    val configFile = file("../config/sudoku/sudoku.yml")
     val config = if (configFile.exists()) {
         try {
             val yaml = Yaml()
@@ -33,13 +33,23 @@ android {
         applicationId = "com.sandro.new_sudoku"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "0.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["coverage"] = "true"
         val appId = config["app-id"]?.toString() ?: ""
         manifestPlaceholders["adAppId"] = appId
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystoreConfig = config["keystore"] as? Map<String, String> ?: emptyMap()
+            storeFile = file("../config/sudoku/${keystoreConfig["file"] ?: "release-key.keystore"}")
+            storePassword = keystoreConfig["password"] ?: ""
+            keyAlias = keystoreConfig["alias"] ?: "release"
+            keyPassword = keystoreConfig["key-password"] ?: ""
+        }
     }
 
     buildTypes {
@@ -86,7 +96,17 @@ android {
                 "\"ca-app-pub-3940256099942544/1044960115\""
             )       // 네이티브 동영상
         }
+        create("releaseTest") {
+            initWith(getByName("debug"))
+            // debug 빌드의 테스트 광고 ID들을 그대로 사용하되, release 서명과 최적화 적용
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+            isDebuggable = false  // 디버그 비활성화
+            // applicationIdSuffix = ".test"  // 패키지명 동일하게 유지
+            versionNameSuffix = "-test"
+        }
         release {
+            signingConfig = signingConfigs.getByName("release")
             // YAML 파일에서 광고 ID 로드
             val adIds = if (config.isNotEmpty()) {
                 config["ad-id"] as? Map<String, String> ?: emptyMap()
