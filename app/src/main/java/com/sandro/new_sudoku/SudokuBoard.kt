@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -120,24 +121,19 @@ fun SudokuCell(
     isEvenBox: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor =
-        remember(isSelected, isHighlighted, isRowHighlighted, isColHighlighted, isEvenBox) {
-            when {
-                isSelected -> Color.Blue.copy(alpha = 0.3f)
-                isHighlighted -> Color.Yellow.copy(alpha = 0.2f)
-                isRowHighlighted || isColHighlighted -> Color.Blue.copy(alpha = 0.1f)
-                isEvenBox -> Color.Gray.copy(alpha = 0.1f)
-                else -> Color.White
-            }
-        }
+    val backgroundColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        isRowHighlighted || isColHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        isEvenBox -> MaterialTheme.colorScheme.surface
+        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+    }
 
-    val textColor = remember(isInitial, value, isInvalid) {
-        when {
-            isInitial -> Color.Black
-            value == 0 -> Color.Gray
-            isInvalid -> Color.Red
-            else -> Color.Blue
-        }
+    val textColor = when {
+        isInitial -> MaterialTheme.colorScheme.onSurface
+        value == 0 -> MaterialTheme.colorScheme.onSurfaceVariant
+        isInvalid -> Color.Red
+        else -> MaterialTheme.colorScheme.primary
     }
 
     val textWeight = remember(isInitial) {
@@ -174,7 +170,7 @@ fun SudokuCell(
             .background(backgroundColor)
             .border(
                 width = 0.5.dp,
-                color = Color.Gray.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(0.dp)
             )
             .clickable { onClick() }
@@ -233,16 +229,24 @@ private fun NotesGrid(
                             highlightedNumber != 0 && noteNum == highlightedNumber
                         }
 
+                        val noteBackgroundColor = when {
+                            isHighlighted && isVisible -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            isVisible -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            else -> Color.Transparent
+                        }
+
+                        val noteTextColor = if (isHighlighted) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .background(
-                                    when {
-                                        isHighlighted && isVisible -> Color.Yellow.copy(alpha = 0.3f)
-                                        isVisible -> Color.LightGray.copy(alpha = 0.15f)
-                                        else -> Color.Transparent
-                                    },
+                                    noteBackgroundColor,
                                     RoundedCornerShape(2.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -250,9 +254,7 @@ private fun NotesGrid(
                             if (isVisible) {
                                 Text(
                                     text = noteNum.toString(),
-                                    color = if (isHighlighted) Color.Black else Color.DarkGray.copy(
-                                        alpha = 0.9f
-                                    ),
+                                    color = noteTextColor,
                                     fontSize = (cellSize.value * 0.22f).coerceAtLeast(9f).sp,
                                     fontWeight = FontWeight.SemiBold,
                                     textAlign = TextAlign.Center,
