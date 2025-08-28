@@ -47,7 +47,7 @@ class SudokuViewModel(
     private val game = SudokuGame()
     var isTestMode = false // 테스트 모드 플래그
     private var currentDifficulty: DifficultyLevel = DifficultyLevel.EASY
-    
+
     // 전면 광고 관리자 (Context가 있을 때만 초기화)
     private val interstitialAdManager: InterstitialAdManager? = context?.let { ctx ->
         InterstitialAdManager(ctx).apply {
@@ -104,7 +104,11 @@ class SudokuViewModel(
             val selectedNumber = currentBoard[row][col]
 
             // 선택된 셀의 숫자와 같은 숫자들을 찾아서 하이라이트
-            val highlightedCells = calculateHighlightedCells(selectedNumber)
+            val highlightedCells = if (selectedNumber != 0) {
+                calculateHighlightedCells(selectedNumber)
+            } else {
+                emptySet()
+            }
 
             updateState(
                 selectedRow = row,
@@ -113,7 +117,8 @@ class SudokuViewModel(
                 highlightedNumber = selectedNumber,
                 highlightedCells = highlightedCells,
                 highlightedRows = setOf(row),
-                highlightedCols = setOf(col)
+                highlightedCols = setOf(col),
+                recalculateInvalidCells = false  // 셀 선택 시에는 유효성 재계산 불필요
             )
         }
 
@@ -124,11 +129,21 @@ class SudokuViewModel(
     }
 
     // 특정 숫자와 같은 숫자를 가진 모든 셀을 찾아서 하이라이트 셋으로 반환
+    // 성능 최적화: 캐싱을 통해 반복 계산 방지
+    private var highlightCache: Pair<Int, Set<Pair<Int, Int>>>? = null
+
     private fun calculateHighlightedCells(
         targetNumber: Int,
         board: Array<IntArray>? = null
     ): Set<Pair<Int, Int>> {
-        return if (targetNumber != 0) {
+        // 캐시 확인
+        highlightCache?.let { (cachedNumber, cachedSet) ->
+            if (cachedNumber == targetNumber && board == null) {
+                return cachedSet
+            }
+        }
+
+        val result = if (targetNumber != 0) {
             buildSet {
                 val currentBoard = board ?: _state.value.board
                 for (r in 0..8) {
@@ -142,6 +157,13 @@ class SudokuViewModel(
         } else {
             emptySet()
         }
+
+        // 캐시 업데이트
+        if (board == null) {
+            highlightCache = targetNumber to result
+        }
+
+        return result
     }
 
     // 전체 보드를 검사해서 잘못된 셀 좌표를 반환 (캐싱 적용)
@@ -233,6 +255,8 @@ class SudokuViewModel(
         }
 
         // 3. 하이라이트 상태 업데이트 (항상 수행)
+        // 보드가 변경되었으므로 캐시 무효화
+        highlightCache = null
         val highlightedCells = calculateHighlightedCells(newValue, updatedBoard)
 
         // 4. 실수 카운트 업데이트
@@ -479,7 +503,7 @@ class SudokuViewModel(
     fun solveGame() {
         game.solveGame()
         val solution = game.getBoard()
-        
+
         _state.value = _state.value.copy(
             board = solution,
             isGameComplete = true,
@@ -489,7 +513,7 @@ class SudokuViewModel(
             invalidCells = emptySet(),
             notes = Array(9) { Array(9) { emptySet() } } // 노트 초기화
         )
-        
+
         completeGame()
     }
 

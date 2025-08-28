@@ -51,8 +51,8 @@ fun SudokuBoard(
         modifier = modifier.testTag("sudoku_board"),
         contentAlignment = Alignment.Center
     ) {
-        val cellSize = remember(maxWidth, maxHeight) {
-            (maxWidth / 9f).coerceAtMost(maxHeight / 9f)
+        val cellSize = remember(this.maxWidth, this.maxHeight) {
+            (this.maxWidth / 9f).coerceAtMost(this.maxHeight / 9f)
         }
 
         // 박스 인덱스 계산을 최적화
@@ -73,10 +73,13 @@ fun SudokuBoard(
                     horizontalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     for (col in 0..8) {
+                        // Pair 객체를 한 번만 생성
+                        val cellPair = remember(row, col) { Pair(row, col) }
+
                         val isSelected = row == selectedRow && col == selectedCol
                         val value = board[row][col]
                         val isInitial = isInitialCells[row][col]
-                        val isInvalid = invalidCells.contains(Pair(row, col))
+                        val isInvalid = invalidCells.contains(cellPair)
                         val isEvenBox = boxIndices[row][col] % 2 == 0
                         val cellNotes = notes[row][col]
                         val cellTag = "cell_${row}_${col}" + if (!isInitial) "_editable" else ""
@@ -86,7 +89,7 @@ fun SudokuBoard(
                             isSelected = isSelected,
                             isInitial = isInitial,
                             isInvalid = isInvalid,
-                            isHighlighted = highlightedCells.contains(Pair(row, col)),
+                            isHighlighted = highlightedCells.contains(cellPair),
                             isRowHighlighted = highlightedRows.contains(row),
                             isColHighlighted = highlightedCols.contains(col),
                             notes = cellNotes,
@@ -121,19 +124,34 @@ fun SudokuCell(
     isEvenBox: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = when {
-        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-        isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        isRowHighlighted || isColHighlighted -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
-        isEvenBox -> MaterialTheme.colorScheme.surface
-        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+    // MaterialTheme은 @Composable이므로 remember 밖에서 호출
+    val colorScheme = MaterialTheme.colorScheme
+
+    // 배경색과 텍스트 색상을 remember로 캐싱하여 리컴포지션 최적화
+    val backgroundColor = remember(
+        isSelected,
+        isHighlighted,
+        isRowHighlighted,
+        isColHighlighted,
+        isEvenBox,
+        colorScheme
+    ) {
+        when {
+            isSelected -> colorScheme.primary.copy(alpha = 0.3f)
+            isHighlighted -> colorScheme.primaryContainer.copy(alpha = 0.7f)
+            isRowHighlighted || isColHighlighted -> colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+            isEvenBox -> colorScheme.surface
+            else -> colorScheme.secondaryContainer.copy(alpha = 0.6f)
+        }
     }
 
-    val textColor = when {
-        isInitial -> MaterialTheme.colorScheme.onSurface
-        value == 0 -> MaterialTheme.colorScheme.onSurfaceVariant
-        isInvalid -> Color.Red
-        else -> MaterialTheme.colorScheme.primary
+    val textColor = remember(isInitial, value, isInvalid, colorScheme) {
+        when {
+            isInitial -> colorScheme.onSurface
+            value == 0 -> colorScheme.onSurfaceVariant
+            isInvalid -> Color.Red
+            else -> colorScheme.primary
+        }
     }
 
     val textWeight = remember(isInitial) {
@@ -164,19 +182,34 @@ fun SudokuCell(
         }
     }
 
-    // 하이라이트된 셀의 테두리 설정
-    val borderWidth = when {
-        isSelected -> 2.dp
-        isHighlighted -> 1.5.dp
-        isRowHighlighted || isColHighlighted -> 1.2.dp
-        else -> 0.5.dp
+    // 테두리 설정도 remember로 캐싱
+    val borderWidth = remember(
+        isSelected,
+        isHighlighted,
+        isRowHighlighted,
+        isColHighlighted
+    ) {
+        when {
+            isSelected -> 2.dp
+            isHighlighted -> 1.5.dp
+            isRowHighlighted || isColHighlighted -> 1.2.dp
+            else -> 0.5.dp
+        }
     }
-    
-    val borderColor = when {
-        isSelected -> MaterialTheme.colorScheme.primary
-        isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        isRowHighlighted || isColHighlighted -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
-        else -> MaterialTheme.colorScheme.outline
+
+    val borderColor = remember(
+        isSelected,
+        isHighlighted,
+        isRowHighlighted,
+        isColHighlighted,
+        colorScheme
+    ) {
+        when {
+            isSelected -> colorScheme.primary
+            isHighlighted -> colorScheme.primary.copy(alpha = 0.8f)
+            isRowHighlighted || isColHighlighted -> colorScheme.tertiary.copy(alpha = 0.8f)
+            else -> colorScheme.outline
+        }
     }
 
     Box(
@@ -245,7 +278,10 @@ private fun NotesGrid(
                         }
 
                         val noteBackgroundColor = when {
-                            isHighlighted && isVisible -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            isHighlighted && isVisible -> MaterialTheme.colorScheme.primaryContainer.copy(
+                                alpha = 0.6f
+                            )
+
                             isVisible -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             else -> Color.Transparent
                         }
