@@ -123,8 +123,8 @@ fun SudokuCell(
 ) {
     val backgroundColor = when {
         isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-        isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        isRowHighlighted || isColHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        isRowHighlighted || isColHighlighted -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
         isEvenBox -> MaterialTheme.colorScheme.surface
         else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
     }
@@ -164,13 +164,28 @@ fun SudokuCell(
         }
     }
 
+    // 하이라이트된 셀의 테두리 설정
+    val borderWidth = when {
+        isSelected -> 2.dp
+        isHighlighted -> 1.5.dp
+        isRowHighlighted || isColHighlighted -> 1.2.dp
+        else -> 0.5.dp
+    }
+    
+    val borderColor = when {
+        isSelected -> MaterialTheme.colorScheme.primary
+        isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+        isRowHighlighted || isColHighlighted -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
+        else -> MaterialTheme.colorScheme.outline
+    }
+
     Box(
         modifier = modifier
             .size(cellSize)
             .background(backgroundColor)
             .border(
-                width = 0.5.dp,
-                color = MaterialTheme.colorScheme.outline,
+                width = borderWidth,
+                color = borderColor,
                 shape = RoundedCornerShape(0.dp)
             )
             .clickable { onClick() }
